@@ -1,0 +1,24 @@
+/project-root
+│── index.html         # メインHTMLファイル
+│── style.css          # スタイル（CSS）
+│── main.js            # ゲームのメインスクリプト（JS）
+│── assets/            # ゲーム用の素材フォルダ
+│   │── images/        # 画像ファイル（マップやキャラなど）
+│   │   │── tiles/     # タイルマップ画像
+│   │   │   ├── grass.png        # 草のタイル
+│   │   │   ├── road.png         # 道路のタイル
+│   │   │   ├── fence.png        # 囲い（デイサービスエリア用）
+│   │   │   ├── house.png        # 子どもの家
+│   │   │   ├── daycare.png      # デイサービスの建物（必要なら）
+│   │   │   ├── parking.png      # 駐車場のタイル
+│   │   ├── characters/ # キャラ関連の画像
+│   │   │   ├── child.png        # 家で待つ子供
+│   │   │   ├── adult.png        # お迎えに向かう大人
+│   │   │   ├── car.png          # 送迎車
+│   │── sounds/        # 音楽ファイル
+│   │   ├── bgm.mp3            # 背景音楽
+│   │   ├── pickup.mp3         # お迎えの効果音
+│   │   ├── dropoff.mp3        # 送迎完了の効果音
+│── data/             # マップや設定データ
+│   ├── map.json      # タイルマップのデータ（JSON形式）
+│   ├── config.json   # 設定ファイル
