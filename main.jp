@@ -106,6 +106,7 @@ fetch("data/map.json")
   });
 
 
+
  // プレイヤーの座標
 let playerX = 2;
 let playerY = 2;
