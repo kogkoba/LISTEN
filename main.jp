@@ -76,6 +76,75 @@ function draw() {
     }
   }
 
-  // キャラクターの描画など、必要に応じて追加
+ // プレイヤーの座標
+let playerX = 2;
+let playerY = 2;
+
+// キー入力を監視
+window.addEventListener("keydown", (e) => {
+  let newX = playerX;
+  let newY = playerY;
+
+  switch (e.key) {
+    case "ArrowUp":
+      newY--;
+      break;
+    case "ArrowDown":
+      newY++;
+      break;
+    case "ArrowLeft":
+      newX--;
+      break;
+    case "ArrowRight":
+      newX++;
+      break;
+    default:
+      return;
+  }
+
+  // 移動先がマップ範囲内か確認
+  if (newX < 0 || newY < 0 || newX >= mapData.mapWidth || newY >= mapData.mapHeight) {
+    console.error("マップ外です");
+    return;
+  }
+
+  // タイルIDを取得
+  const tileId = mapData.tiles[newY][newX];
+  // そのタイルのwalkableをチェック
+  const canWalk = mapData.walkable[tileId];
+
+  if (!canWalk) {
+    // 塀(1) など、歩けない場合
+    console.error("そこは歩けません");
+  } else {
+    // 歩けるなら移動
+    playerX = newX;
+    playerY = newY;
+  }
+});
+
+// update関数の中でプレイヤー位置の更新が行われるなら、この処理をそちらに統合してもOK
+
+function draw() {
+  if (!mapData) return;
+
+  // 1. マップ描画
+  const tileSize = mapData.tileSize;
+  for (let y = 0; y < mapData.mapHeight; y++) {
+    for (let x = 0; x < mapData.mapWidth; x++) {
+      const tileId = mapData.tiles[y][x];
+      const img = tileImages[tileId];
+      if (img) {
+        ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
+      }
+    }
+  }
+
+  // 2. プレイヤーの描画
+  // ここでは簡易的に四角で表示
+  ctx.fillStyle = "red";
+  ctx.fillRect(playerX * tileSize, playerY * tileSize, tileSize, tileSize);
+}
+
 }
 
