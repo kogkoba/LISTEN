@@ -1,1 +1,81 @@
+// Canvasとコンテキストの取得
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// マップデータを格納する変数
+let mapData = null;
+
+// タイル画像のキャッシュ
+const tileImages = {};
+
+// ゲーム開始時に実行
+window.addEventListener("load", initGame);
+
+function initGame() {
+  // JSONの読み込み
+  fetch("data/map.json")
+    .then((res) => res.json())
+    .then((data) => {
+      mapData = data;
+      // タイル画像をまとめて読み込む
+      loadTileImages(data.tileMapping, startGame);
+    })
+    .catch((err) => {
+      console.error("map.json の読み込み失敗:", err);
+    });
+}
+
+// タイル画像をすべて読み込んだらコールバックを呼ぶ
+function loadTileImages(mapping, callback) {
+  const keys = Object.keys(mapping);
+  let loadedCount = 0;
+
+  keys.forEach((key) => {
+    const img = new Image();
+    img.src = mapping[key];
+    img.onload = () => {
+      loadedCount++;
+      if (loadedCount === keys.length) {
+        // 全部読み込んだらコールバック
+        callback();
+      }
+    };
+    tileImages[key] = img;
+  });
+}
+
+function startGame() {
+  // 1フレームごとにアップデート&描画
+  requestAnimationFrame(gameLoop);
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// 更新処理（キャラクター移動など）
+function update() {
+  // 例: キーボード入力を受けてキャラクターを動かす、とか
+}
+
+// 描画処理
+function draw() {
+  if (!mapData) return;
+
+  // マップの描画
+  const tileSize = mapData.tileSize;
+  for (let y = 0; y < mapData.mapHeight; y++) {
+    for (let x = 0; x < mapData.mapWidth; x++) {
+      const tileId = mapData.tiles[y][x];
+      const img = tileImages[tileId];
+      if (img) {
+        ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
+      }
+    }
+  }
+
+  // キャラクターの描画など、必要に応じて追加
+}
 
