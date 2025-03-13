@@ -76,6 +76,36 @@ function draw() {
     }
   }
 
+const characterImages = {};
+
+function loadCharacterImages(mapping, callback) {
+  const keys = Object.keys(mapping);
+  let loadedCount = 0;
+
+  keys.forEach((key) => {
+    const img = new Image();
+    img.src = mapping[key];
+    img.onload = () => {
+      loadedCount++;
+      if (loadedCount === keys.length) {
+        callback();
+      }
+    };
+    characterImages[key] = img;
+  });
+}
+
+// map.json読み込み後にキャラクター画像を読み込む例
+fetch("data/map.json")
+  .then(res => res.json())
+  .then(data => {
+    // タイル画像読み込み後、キャラクター画像を読み込む
+    loadTileImages(data.tileMapping, () => {
+      loadCharacterImages(data.characters, startGame);
+    });
+  });
+
+
  // プレイヤーの座標
 let playerX = 2;
 let playerY = 2;
