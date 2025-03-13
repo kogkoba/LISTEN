@@ -38,7 +38,7 @@
     "1": "assets/images/tiles/1hei.png",
     "2": "assets/images/tiles/2zyuutann.png",
     "3": "assets/images/tiles/3kusa.png"
-    "3": "assets/images/tiles/4ie.png"
+    "4": "assets/images/tiles/4ie.png"
   },
   "walkable": {
     "1": false,
