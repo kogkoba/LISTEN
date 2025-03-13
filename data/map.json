@@ -3,7 +3,7 @@
   "mapWidth": 32,
   "mapHeight": 32,
   "tiles": [
-    /* タイルの2次元配列…（省略） */
+
   ],
   "tileMapping": {
     "1": "assets/images/tiles/1hei.png",
@@ -80,7 +80,7 @@
   "mapWidth": 32,
   "mapHeight": 32,
   "tiles": [
-    /* タイルの2次元配列…（省略） */
+
   ],
   "tileMapping": {
     "1": "assets/images/tiles/1hei.png",
