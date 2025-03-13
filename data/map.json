@@ -48,4 +48,35 @@
     "2": true,
     "3": true
   }
+  {
+  "tileSize": 32,
+  "mapWidth": 32,
+  "mapHeight": 32,
+  "tiles": [
+    /* タイルの2次元配列…（省略） */
+  ],
+  "tileMapping": {
+    "1": "assets/images/tiles/1hei.png",
+    "2": "assets/images/tiles/2zyuutann.png",
+    "3": "assets/images/tiles/3kusa.png"
+  },
+  "walkable": {
+    "1": false,
+    "2": true,
+    "3": true
+  },
+  "characters": {
+    "F": "assets/images/tiles/characters/F.png",
+    "K": "assets/images/tiles/characters/K.png",
+    "S": "assets/images/tiles/characters/S.png",
+    "Y": "assets/images/tiles/characters/Y.png",
+    "一色": "assets/images/tiles/characters/一色.png",
+    "久保": "assets/images/tiles/characters/久保.png",
+    "吉村": "assets/images/tiles/characters/吉村.png",
+    "和": "assets/images/tiles/characters/和.png",
+    "川田": "assets/images/tiles/characters/川田.png",
+    "松村": "assets/images/tiles/characters/松村.png"
+  }
+}
+
 }
