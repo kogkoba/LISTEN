@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>スタッフ一覧</title>
+  <title>スタッフ勤務管理</title>
   <style>
     body {
       font-family: sans-serif;
@@ -11,91 +11,110 @@
     table {
       border-collapse: collapse;
       margin-top: 10px;
+      width: 100%;
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 4px 8px;
+      padding: 6px 8px;
+      text-align: center;
     }
     th {
       background: #f0f0f0;
     }
-    input[type="text"] {
-      width: 100px;
+    select, input[type="text"] {
+      width: 90%;
+      padding: 4px;
+      box-sizing: border-box;
     }
   </style>
 </head>
 <body>
 
-<h1>スタッフ一覧</h1>
+<h1>スタッフ勤務管理</h1>
 
-<!-- テーブルを表示する要素 -->
 <table id="staffTable">
   <thead>
     <tr>
       <th>A列<br>名前</th>
-      <th>B列<br>出欠</th>
-      <th>C列<br>送迎可否</th>
-      <th>D列<br>留守番可否</th>
+      <th>B列<br>出勤</th>
+      <th>C列<br>勤務時間</th>
+      <th>D列<br>送迎可否</th>
+      <th>E列<br>留守番可否</th>
     </tr>
   </thead>
   <tbody>
-    <!-- JavaScriptで行を生成します -->
+    <!-- JavaScriptで行を生成 -->
   </tbody>
 </table>
 
 <script>
-// スタッフ情報を配列で管理
-// A列の名前、C列の送迎可否、D列の留守番可否をここにまとめる
-// 必要に応じて pickUp: "可", watch: "不可" のように設定してください
+// スタッフ情報（A列, 送迎、留守番は固定）
+// 固定値は各スタッフごとに設定可能
 const staffList = [
   { name: "和先生", pickUp: "可",   watch: "可"   },
-  { name: "F先生",  pickUp: "可",   watch: "可" },
-  { name: "H先生",  pickUp: "可",watch: "可"   },
+  { name: "F先生",  pickUp: "可",   watch: "不可" },
+  { name: "H先生",  pickUp: "不可", watch: "可"   },
   { name: "K先生",  pickUp: "可",   watch: "可"   },
-  { name: "Y先生",  pickUp: "可",watch: "可" },
-  { name: "S先生",  pickUp: "可",   watch: "可" },
-  { name: "久保先生", pickUp: "可", watch: "不可"   },
-  { name: "川田先生", pickUp: "不可", watch: "可" },
-  { name: "松村先生", pickUp: "可",watch: "不可" },
-  { name: "一色先生", pickUp: "不可", watch: "不可" },
-  { name: "吉村先生", pickUp: "可",watch: "不可" }
+  { name: "Y先生",  pickUp: "不可", watch: "不可" },
+  { name: "S先生",  pickUp: "可",   watch: "不可" },
+  { name: "久保先生", pickUp: "可", watch: "可"   },
+  { name: "川田先生", pickUp: "可", watch: "不可" },
+  { name: "松村先生", pickUp: "不可", watch: "可"   },
+  { name: "一色先生", pickUp: "可", watch: "不可" },
+  { name: "吉村先生", pickUp: "不可", watch: "不可" }
 ];
+
+// 出勤のプルダウンの選択肢
+const attendanceOptions = ["フル", "半日", "欠勤"];
 
 // ページ読み込み時にテーブルを生成
 window.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector("#staffTable tbody");
-
-  // staffList の各要素に対して行を作成
+  
   staffList.forEach(staff => {
-    // <tr>を作る
     const tr = document.createElement('tr');
-
+    
     // A列: 名前
     const tdName = document.createElement('td');
     tdName.textContent = staff.name;
     tr.appendChild(tdName);
-
-    // B列: 出欠 (ユーザー入力)
-    // 例: フル、半日、"9:00～13:00" 等を自由に入力できるようにする
+    
+    // B列: 出勤（プルダウン）
     const tdAttendance = document.createElement('td');
-    const inputAttendance = document.createElement('input');
-    inputAttendance.type = "text";
-    inputAttendance.placeholder = "例: フル";
-    // 必要なら初期値を設定: inputAttendance.value = "フル";
-    tdAttendance.appendChild(inputAttendance);
+    const selectAttendance = document.createElement('select');
+    // 初期選択肢として空行を追加（選択肢なし状態も可能にするなら）
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "選択";
+    selectAttendance.appendChild(defaultOption);
+    
+    attendanceOptions.forEach(optionText => {
+      const option = document.createElement('option');
+      option.value = optionText;
+      option.textContent = optionText;
+      selectAttendance.appendChild(option);
+    });
+    tdAttendance.appendChild(selectAttendance);
     tr.appendChild(tdAttendance);
-
-    // C列: 送迎可否 (固定)
+    
+    // C列: 勤務時間（入力欄）
+    const tdWorkTime = document.createElement('td');
+    const inputWorkTime = document.createElement('input');
+    inputWorkTime.type = "text";
+    inputWorkTime.placeholder = "例: 09:00～17:00";
+    tdWorkTime.appendChild(inputWorkTime);
+    tr.appendChild(tdWorkTime);
+    
+    // D列: 送迎可否（固定）
     const tdPickup = document.createElement('td');
-    tdPickup.textContent = staff.pickUp; // "可" or "不可"
+    tdPickup.textContent = staff.pickUp;
     tr.appendChild(tdPickup);
-
-    // D列: 留守番可否 (固定)
+    
+    // E列: 留守番可否（固定）
     const tdWatch = document.createElement('td');
-    tdWatch.textContent = staff.watch; // "可" or "不可"
+    tdWatch.textContent = staff.watch;
     tr.appendChild(tdWatch);
-
-    // 行をtbodyに追加
+    
     tbody.appendChild(tr);
   });
 });
