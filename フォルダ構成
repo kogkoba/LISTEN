@@ -22,3 +22,16 @@
 │── data/             # マップや設定データ
 │   ├── map.json      # タイルマップのデータ（JSON形式）
 │   ├── config.json   # 設定ファイル
+
+
+/ (プロジェクトルート)
+├─ index.html          // メインページ（既存のプログラムを含む）
+├─ program2.html       // 新しく追加するプログラム用のHTML
+├─ css/
+│   ├─ style.css       // 既存プログラム用のCSS
+│   └─ program2.css    // 新しいプログラム用のCSS
+├─ js/
+│   ├─ main.js         // 既存プログラム用のJavaScript
+│   └─ program2.js     // 新しいプログラム用のJavaScript
+└─ assets/             // 画像やその他の静的ファイル
+
