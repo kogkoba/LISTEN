@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAy1TzT_XFJ5rpWdOVMdzJWgcdTkGyj6Rk"></script>
+  <meta charset="UTF-8">
   <title>デイサービスお迎えシミュレーション</title>
+  <!-- Maps JavaScript API の読み込み（APIキーを適切なものに変更してください） -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
     }
-
     /* Excelを貼り付ける領域 */
     #pasteArea {
       border: 2px dashed #666;
@@ -28,67 +28,72 @@
       padding: 6px 12px;
       cursor: pointer;
     }
-
-    /* Canvasを中央寄せ＋背景色 */
+    /* Canvasのスタイル */
     #gameCanvas {
       display: block;
       margin: 20px auto;
       background: #eee;
     }
-
-    // ページ読み込み後に実行
+    /* map.json の表示領域 */
+    #mapJsonDisplay {
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      padding: 10px;
+      white-space: pre-wrap;
+      margin: 20px auto;
+      width: 80%;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>デイサービスお迎えシミュレーション</h1>
+  
+  <!-- Google Maps APIによるルート検索の簡単なテスト -->
+  <script>
     window.addEventListener("load", () => {
-      // DirectionsService を生成
       const directionsService = new google.maps.DirectionsService();
-
-      // ルート検索のリクエスト例
       const request = {
-        origin: "東京駅",          // 出発地
-        destination: "秋葉原駅",   // 目的地
+        origin: "東京駅",
+        destination: "秋葉原駅",
         travelMode: google.maps.TravelMode.DRIVING
       };
-
       directionsService.route(request, (result, status) => {
         if (status === google.maps.DirectionsStatus.OK) {
-          // ルートが取得できた場合
-          const route = result.routes[0];
-          const leg = route.legs[0];
-          console.log("距離:", leg.distance.text);
-          console.log("時間:", leg.duration.text);
-          alert("距離: " + leg.distance.text + "\n" + "時間: " + leg.duration.text);
+          const leg = result.routes[0].legs[0];
+          console.log("距離:", leg.distance.text, "時間:", leg.duration.text);
+          alert("ルート検索結果\n距離: " + leg.distance.text + "\n時間: " + leg.duration.text);
         } else {
-          // 失敗した場合
           console.error("Directions request failed:", status);
           alert("ルート検索に失敗しました: " + status);
         }
       });
     });
- <!-- Excelの表をペーストする場所 -->
-  <p style="text-align:center;">
-    Excelの表をコピーして、下の枠に貼り付けてください。
-  </p>
-  <div id="pasteArea" contenteditable="true">
-    ここにExcelの表をペースト
-  </div>
+  </script>
+  
+  <!-- Excelの表をペーストする領域 -->
+  <p style="text-align:center;">Excelの表をコピーして、下の枠に貼り付けてください。</p>
+  <div id="pasteArea" contenteditable="true">ここにExcelの表をペースト</div>
   <button id="parseButton">表を解析してシミュレーションに反映</button>
-
+  
   <!-- シミュレーション用Canvas -->
   <canvas id="gameCanvas" width="1024" height="1024"></canvas>
-
+  
+  <!-- map.json の内容表示 -->
+  <h2>map.json の内容</h2>
+  <pre id="mapJsonDisplay">Loading map.json...</pre>
+  
   <script>
-    // -----------------------------------------
-    // 1) タイルマップを読み込み＆表示する処理
-    // -----------------------------------------
-    let mapData = null;       // data/map.json の内容を格納
+    // -------------------------------
+    // ① タイルマップの読み込み＆表示
+    // -------------------------------
+    let mapData = null;       // data/map.json の内容
     let tileImages = {};      // タイル画像のキャッシュ
     let ctx = null;           // Canvasコンテキスト
 
     window.addEventListener("load", () => {
-      // Canvasのコンテキストを取得
       const canvas = document.getElementById("gameCanvas");
       ctx = canvas.getContext("2d");
-
-      // map.json を読み込む
       loadMapJson();
     });
 
@@ -97,22 +102,23 @@
         .then(res => res.json())
         .then(data => {
           mapData = data;
-          // タイル画像を読み込む
-          loadTileImages(mapData.tileMapping, () => {
-            // 読み込み完了後、マップを描画
-            drawMap();
-          });
+          displayMapJson(data);
+          loadTileImages(mapData.tileMapping, drawMap);
         })
         .catch(err => {
           console.error("map.jsonの読み込み失敗:", err);
         });
     }
 
+    function displayMapJson(data) {
+      const pre = document.getElementById("mapJsonDisplay");
+      pre.textContent = JSON.stringify(data, null, 2);
+    }
+
     function loadTileImages(mapping, callback) {
       const keys = Object.keys(mapping);
       let loadedCount = 0;
       const total = keys.length;
-
       keys.forEach(key => {
         const img = new Image();
         img.src = mapping[key];
@@ -140,41 +146,34 @@
       }
     }
 
-    // -----------------------------------------
-    // 2) Excel表をペースト＆解析して反映する処理
-    // -----------------------------------------
+    // -------------------------------
+    // ② Excel表の貼り付け＆解析処理
+    // -------------------------------
     document.getElementById("parseButton").addEventListener("click", () => {
       const pasteArea = document.getElementById("pasteArea");
       const pastedHTML = pasteArea.innerHTML;
-
-      // 貼り付けられたHTMLをパース
       const parser = new DOMParser();
       const doc = parser.parseFromString(pastedHTML, "text/html");
       const table = doc.querySelector("table");
-
       if (!table) {
         alert("テーブルが見つかりません。Excelからコピーされていない可能性があります。");
         return;
       }
-
-      // テーブルの行・セルを配列化
       const rows = table.querySelectorAll("tr");
       const data = [];
-      rows.forEach((row) => {
+      rows.forEach(row => {
         const cells = row.querySelectorAll("td, th");
         const rowData = [];
-        cells.forEach((cell) => {
+        cells.forEach(cell => {
           rowData.push(cell.innerText.trim());
         });
         data.push(rowData);
       });
-
       console.log("Excel表を配列として取得:", data);
       alert("解析完了！コンソールを確認してください。");
 
-      // 例：Canvas上に、解析したExcelの1行目をテキスト表示してみる
-      // 既存のマップの上に文字を重ね描きする
-      drawMap(); // まずマップを再描画(消したい場合)
+      // 解析結果をCanvasに重ね描きする例
+      drawMap(); // まず背景マップを再描画
       ctx.fillStyle = "red";
       ctx.font = "24px sans-serif";
       if (data.length > 0) {
