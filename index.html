@@ -2,119 +2,115 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>送迎所要時間計算プログラム</title>
-  <!-- Google Maps API の読み込み（YOUR_API_KEY はご自身のAPIキーに変更） -->
-  <script src="https://maps.googleapis.com/maps/api/AIzaSyCWkN3Ple1i9BpjtAZHwqPIVQOdjiWo-IE"></script>
+  <title>送迎予定チェック</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    h1, h2 { text-align: center; }
-    label { display: block; margin: 10px 0; }
-    select, input { width: 300px; padding: 5px; }
-    #output { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #inputArea {
+      width: 90%;
+      height: 150px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+    }
+    .error {
+      background-color: #ffdcdc;
+    }
   </style>
 </head>
 <body>
-  <h1>送迎所要時間計算プログラム</h1>
-  <form id="calcForm">
-    <label>
-      スタッフ名:
-      <input type="text" id="staffName" placeholder="例: K先生">
-    </label>
-    <label>
-      出発地:
-      <select id="originSelect"></select>
-    </label>
-    <label>
-      経由地（任意）:
-      <select id="waypointSelect">
-        <option value="">（なし）</option>
-      </select>
-    </label>
-    <label>
-      到着地:
-      <select id="destinationSelect"></select>
-    </label>
-    <label>
-      出発時刻:
-      <input type="time" id="departureTime" value="13:00">
-    </label>
-    <button type="button" id="calcButton">所要時間を計算する</button>
-  </form>
+  <h1>送迎予定チェック</h1>
+  <p>1) Excelで表をコピー (Ctrl+C) して、2) 下の枠に貼り付け (Ctrl+V) → 3) 「解析」ボタンを押す</p>
   
-  <div id="output"></div>
-  
+  <textarea id="inputArea" placeholder="ここにExcelの表を貼り付けてください"></textarea><br><br>
+  <button onclick="parseData()">解析</button>
+
+  <div id="tableContainer"></div>
+
   <script>
-    // ① スプレッドシートのデータを模擬（本来は外部から取得することも可能）
-    // ここでは「場所の名前 - 住所」のリストとして定義
-    const places = {
-      "池田": "東京都文京区池田町1-1-1",
-      "清家": "東京都文京区清家町2-2-2",
-      "藤井": "東京都文京区藤井町3-3-3",
-      "デイサービス": "東京都文京区デイサービス町4-4-4"
-    };
-
-    // ② 各 select 要素に場所リストをセット
-    function populateSelect(selectElement) {
-      for (const [name, address] of Object.entries(places)) {
-        const option = document.createElement("option");
-        option.value = address;
-        option.textContent = name;
-        selectElement.appendChild(option);
-      }
-    }
-    window.addEventListener("load", () => {
-      populateSelect(document.getElementById("originSelect"));
-      populateSelect(document.getElementById("destinationSelect"));
-      populateSelect(document.getElementById("waypointSelect"));
-    });
-
-    // ③ ルート検索と所要時間計算
-    document.getElementById("calcButton").addEventListener("click", () => {
-      const staffName = document.getElementById("staffName").value.trim();
-      const origin = document.getElementById("originSelect").value;
-      const destination = document.getElementById("destinationSelect").value;
-      const waypointAddress = document.getElementById("waypointSelect").value;
-      const departureTimeStr = document.getElementById("departureTime").value;
-
-      if (!staffName || !origin || !destination) {
-        alert("スタッフ名、出発地、到着地は必須です。");
+    function parseData() {
+      const text = document.getElementById("inputArea").value.trim();
+      if (!text) {
+        alert("テキストが空です。Excelの表をコピーして貼り付けてください。");
         return;
       }
-
-      // 出発時刻を Date オブジェクトに変換 (本日の出発時刻として)
-      const now = new Date();
-      const [hours, minutes] = departureTimeStr.split(":").map(Number);
-      const departureTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-
-      // DirectionsService を利用
-      const directionsService = new google.maps.DirectionsService();
-      let request = {
-        origin: origin,
-        destination: destination,
-        travelMode: google.maps.TravelMode.DRIVING
-      };
-      if (waypointAddress) {
-        request.waypoints = [{ location: waypointAddress }];
-      }
-
-      directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          const legs = result.routes[0].legs;
-          let totalDurationSec = 0;
-          let outputHtml = `<h2>${staffName} さんのルート</h2>`;
-          outputHtml += `<p>出発時刻: ${departureTime.toLocaleTimeString()}</p>`;
-          legs.forEach((leg, index) => {
-            totalDurationSec += leg.duration.value; // 秒単位
-            const arrivalTime = new Date(departureTime.getTime() + totalDurationSec * 1000);
-            outputHtml += `<p>区間${index + 1}:<br> ${leg.start_address} → ${leg.end_address}<br>`;
-            outputHtml += `移動時間: ${leg.duration.text}、到着予定時刻: ${arrivalTime.toLocaleTimeString()}</p>`;
-          });
-          document.getElementById("output").innerHTML = outputHtml;
-        } else {
-          document.getElementById("output").innerHTML = `<p>ルート検索に失敗しました: ${status}</p>`;
-        }
+      
+      // 改行で行に分割
+      const lines = text.split(/\r?\n/);
+      
+      // テーブルを組み立てるHTMLを作る
+      let tableHtml = "<table>";
+      lines.forEach((line, rowIndex) => {
+        // タブ区切りで列に分割 (Excelからのコピーは基本的にタブ区切り)
+        const cols = line.split("\t");
+        tableHtml += "<tr>";
+        cols.forEach((col, colIndex) => {
+          // 1行目をヘッダ行にする例 (任意で調整)
+          if (rowIndex === 0) {
+            tableHtml += `<th>${col}</th>`;
+          } else {
+            tableHtml += `<td>${col}</td>`;
+          }
+        });
+        tableHtml += "</tr>";
       });
-    });
+      tableHtml += "</table>";
+      
+      // テーブル表示
+      document.getElementById("tableContainer").innerHTML = tableHtml;
+      
+      // --- ここからチェック機能(サンプル) ---
+      //   例： 「お迎え時刻」 < 「リスン到着時刻」でなければエラーにする 等
+      //   まずは列の位置を特定する (1行目のヘッダを参照)
+      
+      const table = document.querySelector("#tableContainer table");
+      if (!table) return;
+      
+      // ヘッダ行(0行目)の列見出しを取得
+      const headerCells = table.rows[0].cells;
+      let idxPickup = -1;
+      let idxArrive = -1;
+      
+      for (let i = 0; i < headerCells.length; i++) {
+        const headerText = headerCells[i].textContent.trim();
+        if (headerText === "お迎え時刻") idxPickup = i;
+        if (headerText === "リスン到着") idxArrive = i;
+      }
+      
+      // 必要な列が見つからなければチェックをスキップ
+      if (idxPickup === -1 || idxArrive === -1) {
+        console.log("チェック対象の列が見つかりませんでした。");
+        return;
+      }
+      
+      // 2行目以降(= table.rows[1] 以降)をチェック
+      for (let r = 1; r < table.rows.length; r++) {
+        const row = table.rows[r];
+        const pickupText = row.cells[idxPickup].textContent.trim();
+        const arriveText = row.cells[idxArrive].textContent.trim();
+        
+        // 時刻を数値(1300 → 13:00相当)にして比較する簡易例
+        // （実際にはもう少し厳密な変換が必要かも）
+        const pickupNum = parseInt(pickupText, 10);
+        const arriveNum = parseInt(arriveText, 10);
+        
+        // 例：お迎え時刻 > リスン到着時刻 ならエラー扱い
+        if (!isNaN(pickupNum) && !isNaN(arriveNum)) {
+          if (pickupNum > arriveNum) {
+            // 背景色を変えてエラー表示
+            row.cells[idxPickup].classList.add("error");
+            row.cells[idxArrive].classList.add("error");
+          }
+        }
+      }
+    }
   </script>
 </body>
 </html>
