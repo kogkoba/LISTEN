@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAy1TzT_XFJ5rpWdOVMdzJWgcdTkGyj6Rk"></script>
   <title>デイサービスお迎えシミュレーション</title>
   <style>
     body {
@@ -34,12 +35,35 @@
       margin: 20px auto;
       background: #eee;
     }
-  </style>
-</head>
-<body>
-  <h1>デイサービスお迎えシミュレーション</h1>
 
-  <!-- Excelの表をペーストする場所 -->
+    // ページ読み込み後に実行
+    window.addEventListener("load", () => {
+      // DirectionsService を生成
+      const directionsService = new google.maps.DirectionsService();
+
+      // ルート検索のリクエスト例
+      const request = {
+        origin: "東京駅",          // 出発地
+        destination: "秋葉原駅",   // 目的地
+        travelMode: google.maps.TravelMode.DRIVING
+      };
+
+      directionsService.route(request, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          // ルートが取得できた場合
+          const route = result.routes[0];
+          const leg = route.legs[0];
+          console.log("距離:", leg.distance.text);
+          console.log("時間:", leg.duration.text);
+          alert("距離: " + leg.distance.text + "\n" + "時間: " + leg.duration.text);
+        } else {
+          // 失敗した場合
+          console.error("Directions request failed:", status);
+          alert("ルート検索に失敗しました: " + status);
+        }
+      });
+    });
+ <!-- Excelの表をペーストする場所 -->
   <p style="text-align:center;">
     Excelの表をコピーして、下の枠に貼り付けてください。
   </p>
