@@ -15,3 +15,20 @@ function calculate() {
     document.getElementById('result').innerHTML = "所要時間: " + result;
   }).getTravelTime(origin, destination);
 }
+function doGet(e) {
+  const callback = e.parameter.callback;
+  // JSONデータを作る
+  const data = { duration: "5 hours 35 mins" };
+  const jsonStr = JSON.stringify(data);
+  if (callback) {
+    // JSONP 形式
+    return ContentService
+      .createTextOutput(`${callback}(${jsonStr})`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } else {
+    // 通常JSON
+    return ContentService
+      .createTextOutput(jsonStr)
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
