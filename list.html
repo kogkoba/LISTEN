@@ -2,11 +2,19 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>スタッフ勤務管理</title>
+  <title>複合管理サンプル</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      box-sizing: border-box;
     }
     table {
       border-collapse: collapse;
@@ -30,79 +38,121 @@
 </head>
 <body>
 
-<h1>スタッフ勤務管理</h1>
+<h1>複合管理サンプル</h1>
 
-<!-- 1. コピペ用テキストエリア -->
-<div>
-  <label for="inputArea">ここにデータをコピペ:</label><br>
-  <textarea id="inputArea" placeholder="タブ区切りで貼り付け"></textarea>
+<!-- 1. 業務用の表をコピペするエリア -->
+<div class="section">
+  <h2>業務上の表をコピペ</h2>
+  <textarea id="copyArea" placeholder="ここに業務用表を貼り付け"></textarea>
   <br>
-  <button onclick="convertTable()">変換する</button>
+  <button onclick="showRaw()">表示するだけ</button>
+  <div id="rawOutput" style="white-space: pre-wrap; border:1px solid #ccc; margin-top:10px; padding:5px;"></div>
 </div>
 
-<table id="staffTable">
-  <thead>
-    <tr>
-      <th>A列<br>名前</th>
-      <th>B列<br>出欠</th>
-      <th>C列<br>出勤時間</th>
-      <th>D列<br>退勤時間</th>
-      <th>E列<br>送迎可否</th>
-      <th>F列<br>留守番可否</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- JavaScriptで行を生成 -->
-  </tbody>
-</table>
+<!-- 2. スタッフ一覧表 -->
+<div class="section">
+  <h2>スタッフ一覧</h2>
+  <table id="staffTable">
+    <thead>
+      <tr>
+        <th>A列<br>名前</th>
+        <th>B列<br>出欠</th>
+        <th>C列<br>出勤時間</th>
+        <th>D列<br>退勤時間</th>
+        <th>E列<br>送迎可否</th>
+        <th>F列<br>留守番可否</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JavaScriptで行を生成 -->
+    </tbody>
+  </table>
+</div>
+
+<!-- 3. 出勤者を抽出して表示するテーブル -->
+<div class="section">
+  <h2>出勤者の抽出結果</h2>
+  <button onclick="generateAttendanceList()">出勤者抽出</button>
+  <table id="extractedTable">
+    <thead>
+      <tr>
+        <th>A列<br>名前</th>
+        <th>B列</th>
+        <th>C列</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- ここに出勤者のみ抽出して表示 -->
+    </tbody>
+  </table>
+</div>
 
 <script>
-// スタッフ情報（名前, 送迎可否, 留守番可否）
+//-------------------------------------------------------------
+// 1. 業務用の表をコピペ -> そのまま表示するだけ
+//-------------------------------------------------------------
+function showRaw() {
+  const text = document.getElementById('copyArea').value;
+  document.getElementById('rawOutput').textContent = text;
+}
+
+//-------------------------------------------------------------
+// 2. スタッフ一覧表の生成
+//-------------------------------------------------------------
 const staffList = [
-  { name: "和先生",   pickUp: "可", watch: "可" },
-  { name: "F先生",    pickUp: "可", watch: "可" },
-  { name: "H先生",    pickUp: "可", watch: "可" },
-  { name: "K先生",    pickUp: "可", watch: "可" },
-  { name: "Y先生",    pickUp: "可", watch: "可" },
-  { name: "S先生",    pickUp: "可", watch: "可" },
-  { name: "久保先生", pickUp: "可", watch: "不可" },
-  { name: "川田先生", pickUp: "不可", watch: "可" },
-  { name: "松村先生", pickUp: "不可", watch: "可" },
-  { name: "一色先生", pickUp: "不可", watch: "可" },
-  { name: "吉村先生", pickUp: "不可", watch: "可" }
+  // 送迎可否(pickUp)、留守番可否(watch) は事前に指定
+  { name: "和先生",   pickUp: "可",   watch: "可"   },
+  { name: "F先生",    pickUp: "可",   watch: "可"   },
+  { name: "H先生",    pickUp: "可",   watch: "可"   },
+  { name: "K先生",    pickUp: "可",   watch: "可"   },
+  { name: "Y先生",    pickUp: "可",   watch: "可"   },
+  { name: "S先生",    pickUp: "可",   watch: "可"   },
+  { name: "久保先生", pickUp: "可",   watch: "不可" },
+  { name: "川田先生", pickUp: "不可",watch: "可"   },
+  { name: "松村先生", pickUp: "不可",watch: "可"   },
+  { name: "一色先生", pickUp: "不可",watch: "可"   },
+  { name: "吉村先生", pickUp: "不可",watch: "可"   }
 ];
 
 // 出欠のプルダウン選択肢
 const attendanceOptions = ["フル", "パートタイマー", "欠"];
 
-// ページ読み込み時にテーブル生成
+// 生成時にHTML要素を参照しやすいよう、スタッフごとに
+// selectやinputへの参照を保管するための配列(またはstaffListに追加)
+let staffData = []; 
+
 window.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector("#staffTable tbody");
   
   staffList.forEach(staff => {
+    // オブジェクトをコピーしてUI参照を追加する
+    const staffObj = {
+      name: staff.name,
+      pickUp: staff.pickUp,
+      watch: staff.watch,
+      // 後でUI要素を格納
+      selectAttendance: null,
+      inputStart: null,
+      inputEnd: null
+    };
+
     const tr = document.createElement('tr');
     
     // A列: 名前
     const tdName = document.createElement('td');
-    tdName.textContent = staff.name;
+    tdName.textContent = staffObj.name;
     tr.appendChild(tdName);
     
     // B列: 出欠 (プルダウン)
     const tdAttendance = document.createElement('td');
     const selectAttendance = document.createElement('select');
-    // 初期状態として「選択肢なし」を入れたくないなら省略してOK
-    // const defaultOption = document.createElement('option');
-    // defaultOption.value = "";
-    // defaultOption.textContent = "選択";
-    // selectAttendance.appendChild(defaultOption);
-
     attendanceOptions.forEach(optionText => {
       const option = document.createElement('option');
       option.value = optionText;
       option.textContent = optionText;
       selectAttendance.appendChild(option);
     });
-    // デフォルトで「フル」を選択したい場合
+    // デフォルトで「フル」を選択
     selectAttendance.value = "フル";
     tdAttendance.appendChild(selectAttendance);
     tr.appendChild(tdAttendance);
@@ -112,7 +162,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const inputStart = document.createElement('input');
     inputStart.type = "text";
     inputStart.placeholder = "例: 09:00";
-    // デフォルトで disabled (「フル」「欠」は時間不要の想定なら)
     inputStart.disabled = true; 
     tdStart.appendChild(inputStart);
     tr.appendChild(tdStart);
@@ -122,41 +171,88 @@ window.addEventListener('DOMContentLoaded', () => {
     const inputEnd = document.createElement('input');
     inputEnd.type = "text";
     inputEnd.placeholder = "例: 17:00";
-    // デフォルトで disabled
     inputEnd.disabled = true;
     tdEnd.appendChild(inputEnd);
     tr.appendChild(tdEnd);
     
     // E列: 送迎可否 (固定)
     const tdPickup = document.createElement('td');
-    tdPickup.textContent = staff.pickUp;
+    tdPickup.textContent = staffObj.pickUp;
     tr.appendChild(tdPickup);
     
     // F列: 留守番可否 (固定)
     const tdWatch = document.createElement('td');
-    tdWatch.textContent = staff.watch;
+    tdWatch.textContent = staffObj.watch;
     tr.appendChild(tdWatch);
     
-    // テーブルに行を追加
     tbody.appendChild(tr);
 
-    // --- イベントリスナー: 出欠が「パートタイマー」のときのみ 時間入力を有効化 ---
+    // イベントリスナー: パートタイマーでのみ時間入力可
     selectAttendance.addEventListener('change', () => {
       if (selectAttendance.value === "パートタイマー") {
-        // 出勤・退勤時間を入力可能にする
         inputStart.disabled = false;
         inputEnd.disabled = false;
       } else {
-        // それ以外は入力不要 → disabledにする
         inputStart.disabled = true;
         inputEnd.disabled = true;
-        // 必要なら値をクリア
         inputStart.value = "";
         inputEnd.value = "";
       }
     });
+
+    // staffObj にUI要素を保存
+    staffObj.selectAttendance = selectAttendance;
+    staffObj.inputStart = inputStart;
+    staffObj.inputEnd = inputEnd;
+
+    // staffData 配列に追加
+    staffData.push(staffObj);
   });
 });
+
+//-------------------------------------------------------------
+// 3. 出勤者を抽出して下のテーブルに表示
+//-------------------------------------------------------------
+function generateAttendanceList() {
+  const tbody = document.querySelector("#extractedTable tbody");
+  tbody.innerHTML = ""; // 既存をクリア
+
+  // staffDataをループして「出欠」が「フル」or「パートタイマー」の人だけ抽出
+  staffData.forEach(staff => {
+    const status = staff.selectAttendance.value;
+    if (status === "欠") {
+      // 欠の人は表示しない
+      return;
+    }
+    // 出勤者(フル or パートタイマー)
+    // 新しい行を作る
+    const tr = document.createElement('tr');
+
+    // A列: 名前
+    const tdName = document.createElement('td');
+    tdName.textContent = staff.name;
+    tr.appendChild(tdName);
+
+    // B列: パートタイマーなら出勤時間、フルなら「制限なし」
+    const tdColB = document.createElement('td');
+    // C列: パートタイマーなら退勤時間、フルなら「制限なし」
+    const tdColC = document.createElement('td');
+
+    if (status === "パートタイマー") {
+      tdColB.textContent = staff.inputStart.value || "未入力";
+      tdColC.textContent = staff.inputEnd.value || "未入力";
+    } else {
+      // フルの場合
+      tdColB.textContent = "制限なし";
+      tdColC.textContent = "制限なし";
+    }
+
+    tr.appendChild(tdColB);
+    tr.appendChild(tdColC);
+
+    tbody.appendChild(tr);
+  });
+}
 </script>
 
 </body>
