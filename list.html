@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>コピペ表の整形サンプル</title>
+  <title>固定列＋コピペデータ結合サンプル</title>
   <style>
     body {
       font-family: sans-serif;
@@ -32,66 +32,76 @@
 </head>
 <body>
 
-<h1>コピペ表の整形サンプル</h1>
+<h1>固定列＋コピペデータ結合サンプル</h1>
 
 <!-- 1. コピペ用テキストエリア -->
 <div>
-  <label for="inputArea">ここに表をコピペしてください:</label><br>
-  <textarea id="inputArea" placeholder="Excel等からコピーして貼り付け"></textarea>
+  <label for="inputArea">ここにデータをコピペ:</label><br>
+  <textarea id="inputArea" placeholder="タブ区切りで貼り付け"></textarea>
   <br>
   <button onclick="convertTable()">変換する</button>
 </div>
 
-<!-- 2. そのままの形を表示 -->
-<div class="section">
-  <h2>そのままの形</h2>
-  <div id="rawOutput" style="white-space: pre-wrap; border:1px solid #ccc; padding: 10px;"></div>
-</div>
-
-<!-- 3. 整形したテーブルを表示 -->
+<!-- 2. 整形後のテーブルを表示 -->
 <div class="section">
   <h2>整形後のテーブル</h2>
   <div id="tableContainer"></div>
 </div>
 
 <script>
+/**
+ * A列として固定表示したいリスト
+ * （行数を揃えたい場合は、コピペデータと同じ行数になるように調整）
+ */
+const fixedColumn = [
+  "名前",
+  "F先生",
+  "K先生",
+  "S先生",
+  "Y先生",
+  "一色先生",
+  "久保先生",
+  "吉村先生",
+  "和先生",
+  "川田先生",
+  "松村先生"
+];
+
+/**
+ * 変換ボタンを押したときに呼ばれる処理
+ */
 function convertTable() {
   // 1. テキストエリアから入力を取得
   const inputText = document.getElementById('inputArea').value.trim();
   
-  // 2. そのまま表示
-  //    - タブ(\t)はスペースに置き換え、改行(\n)は改行のまま
-  //    - あるいは `white-space: pre-wrap;` スタイルを使うことで
-  //      そのままのテキスト表示が可能です
-  document.getElementById('rawOutput').textContent = inputText;
-
-  // 3. 整形してテーブルを作成
-  //    - 行ごとに分割 (改行区切り)
-  //    - 列ごとに分割 (タブ区切り)
+  // 2. 行ごとに分割 (改行区切り)
   const lines = inputText.split('\n');
-  
+
   // テーブル要素を作成
   const table = document.createElement('table');
 
-  // 各行を処理
-  for (let i = 0; i < lines.length; i++) {
-    // 空行を除外
-    if (!lines[i].trim()) {
-      continue;
-    }
+  // 3. 行ループ (固定列の行数に合わせる)
+  //    ※ もし貼り付けデータが固定列より多い/少ない場合はロジックを調整
+  for (let i = 0; i < fixedColumn.length; i++) {
+    const tr = document.createElement('tr');
+    
+    // --- A列(固定列) ---
+    const fixedTd = document.createElement('td');
+    fixedTd.textContent = fixedColumn[i];
+    tr.appendChild(fixedTd);
 
-    const row = document.createElement('tr');
-    const cols = lines[i].split('\t');
-
-    // 各列を処理
-    for (let j = 0; j < cols.length; j++) {
-      // 1行目だけ th (ヘッダセル) にしたい場合は以下のように条件分岐もできる
-      // ここではすべて td に統一
-      const cell = document.createElement('td');
-      cell.textContent = cols[j];
-      row.appendChild(cell);
+    // --- 貼り付けデータ ---
+    // i番目の行が存在すれば、タブ区切りでsplitして追加
+    if (i < lines.length && lines[i].trim()) {
+      const cols = lines[i].split('\t');
+      // 列ループ
+      for (let j = 0; j < cols.length; j++) {
+        const td = document.createElement('td');
+        td.textContent = cols[j];
+        tr.appendChild(td);
+      }
     }
-    table.appendChild(row);
+    table.appendChild(tr);
   }
 
   // 4. テーブルを表示する
