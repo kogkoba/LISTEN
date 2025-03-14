@@ -168,6 +168,55 @@ function displayResultTable(dataArray) {
     tbody.appendChild(tr);
   });
 }
+  // 文字列時刻 ("1300") を分に変換する関数
+function convertTime(timeStr) {
+  if (!timeStr || timeStr.length !== 4) return 0;
+  const hour = parseInt(timeStr.slice(0,2), 10);
+  const minute = parseInt(timeStr.slice(2), 10);
+  return hour * 60 + minute;
+}
+
+// parsedData は先ほどの parseTable() などで得られた配列
+// 例: [{ no: "1", name: "松井", pickupTime: "1300", arrivalTime: "1340", driver: "濵" }, ...]
+function groupByDriver(parsedData) {
+  const groups = {};
+  parsedData.forEach(item => {
+    const driver = item.driver;
+    if (!groups[driver]) {
+      groups[driver] = [];
+    }
+    groups[driver].push(item);
+  });
+  
+  // 各グループをお迎え時刻でソート
+  for (let driver in groups) {
+    groups[driver].sort((a, b) => convertTime(a.pickupTime) - convertTime(b.pickupTime));
+  }
+  return groups;
+}
+
+// シンプルな乗り合い判定: 同じ担当者内で、到着時刻が全て同じなら同乗と判定
+function simulateRideSharing(groups) {
+  const result = [];
+  for (let driver in groups) {
+    const records = groups[driver];
+    // まず、到着時刻がすべて一致するかチェック
+    const baseArrival = records[0].arrivalTime;
+    const allSameArrival = records.every(item => item.arrivalTime === baseArrival);
+    
+    if (allSameArrival && records.length > 1) {
+      // 複数人で同じ到着時刻なら、乗り合いとみなす
+      result.push({
+        driver,
+        pickupTimes: records.map(item => item.pickupTime),
+        arrivalTime: baseArrival,
+        riders: records.map(item => item.name)
+      });
+    }
+  }
+  return result;
+}
+
 </script>
 
 </body>
