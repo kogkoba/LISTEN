@@ -3,6 +3,224 @@
 <head>
   <meta charset="UTF-8">
   <title>デイサービスお迎えシミュレーション</title>
+  <style>
+    /* テーブルの基本スタイル */
+    .schedule-table {
+      border-collapse: collapse;
+      width: 100%;          /* 横幅をページ全体に広げる */
+      margin-bottom: 1rem;  /* テーブルと下の要素（Canvas）の間に余白 */
+      font-size: 14px;      /* 好みで変更 */
+    }
+    .schedule-table th,
+    .schedule-table td {
+      border: 1px solid #999; 
+      padding: 4px 8px;
+      text-align: center;
+    }
+    /* ヘッダー行（No, 1,2,3...） */
+    .schedule-table thead tr {
+      background-color: #ddd;  /* 薄いグレー */
+    }
+    /* 表示例として、本文はピンク系に */
+    .schedule-table tbody tr {
+      background-color: #f8ccf2; /* 好みで変更 */
+    }
+
+    /* Canvasの見た目 */
+    #gameCanvas {
+      display: block;
+      margin: 0 auto; /* 画面中央寄せ */
+      background: #eee; 
+      /* 必要に応じて width/height は HTML属性でも指定する */
+    }
+  </style>
+</head>
+<body>
+
+  <h1>デイサービスお迎えシミュレーション</h1>
+
+  <!-- 送迎予定表（例） -->
+  <table class="schedule-table">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>1</th>
+        <th>2</th>
+        <th>3</th>
+        <th>4</th>
+        <th>5</th>
+        <th>6</th>
+        <th>7</th>
+        <th>8</th>
+        <th>9</th>
+        <th>10</th>
+        <th>11</th>
+        <th>12</th>
+        <th>13</th>
+        <th>14</th>
+        <th>15</th>
+        <th>16</th>
+        <th>17</th>
+        <th>18</th>
+        <th>19</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 氏名行 -->
+      <tr>
+        <td>氏名</td>
+        <td>A君</td>
+        <td>B君</td>
+        <td>C君</td>
+        <td>D君</td>
+        <td>E君</td>
+        <td>F君</td>
+        <td>G君</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+      <!-- お迎え時刻行 -->
+      <tr>
+        <td>お迎え時刻</td>
+        <td>1300</td>
+        <td>1310</td>
+        <td>1300</td>
+        <td>1300</td>
+        <td>1300</td>
+        <td>1300</td>
+        <td>1200</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+      <!-- お迎え場所行 -->
+      <tr>
+        <td>お迎え場所</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>自宅</td>
+        <td>...</td>
+        <!-- ... 以下、必要に応じてセルを埋める -->
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+      <!-- リスン到着行 -->
+      <tr>
+        <td>リスン到着</td>
+        <td>1325</td>
+        <td>1320</td>
+        <td>1330</td>
+        <td>1320</td>
+        <td>1320</td>
+        <td>1220</td>
+        <td>...</td>
+        <td>...</td>
+        <!-- 以下同様に -->
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+      <!-- 担当行 -->
+      <tr>
+        <td>担当</td>
+        <td>濵田</td>
+        <td>窪田</td>
+        <td>演</td>
+        <td>濵</td>
+        <td>和</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <!-- 以下同様に -->
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+      <!-- 次行 -->
+      <tr>
+        <td>次</td>
+        <td>河野</td>
+        <td>彦川</td>
+        <td>...</td>
+        <!-- 以下同様に -->
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+        <td>...</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ゲーム用のCanvas -->
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+  <!-- シミュレーションのJSなど -->
+  <script src="main.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>デイサービスお迎えシミュレーション</title>
   <link rel="icon" href="assets/images/your-favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
