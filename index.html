@@ -21,7 +21,7 @@
       padding: 4px 8px;
     }
     .error {
-      background-color: #ffdcdc; /* エラー表示用の薄い赤色 */
+      background-color: #ffdcdc;
     }
     .message {
       margin-top: 20px;
@@ -32,54 +32,59 @@
 </head>
 <body>
   <h1>送迎予定チェック</h1>
-  <p>1) Excelで表をコピー (Ctrl+C) → 2) 下の枠に貼り付け (Ctrl+V) → 3)「解析」ボタン</p>
+  <p>
+    1) Excelで表をコピー (Ctrl+C) → 2) 下の枠に貼り付け (Ctrl+V) → 3)「解析」ボタン
+  </p>
   
   <textarea id="inputArea" placeholder="ここにExcelの表を貼り付けてください"></textarea><br><br>
   <button onclick="parseData()">解析</button>
 
   <div id="tableContainer"></div>
   <div id="checkResult" class="message"></div>
+  <div id="absenceList"></div>
 
   <script>
-    // ◆◆ 時刻を数値(例: 13:10 → 1310, 13:00 → 1300)に変換するサンプル関数 ◆◆
-    // Excelの入力が「1310」だったり「13:10」だったりするケースを想定。
+    // 時刻文字列（例："13:10" や "1310"）を数値に変換する関数
     function parseTimeToNumber(timeStr) {
-      // もし空なら NaN を返す
       if (!timeStr) return NaN;
-      
-      // "13:10" のようにコロンが入っていたら取り除く
       let parts = timeStr.split(":");
       if (parts.length === 2) {
-        // "13:10" → 13*100 + 10 = 1310
         const h = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10);
         return h * 100 + m;
       }
-      // コロンなしの場合はそのまま数値化 (例: "1310" → 1310)
       return parseInt(timeStr, 10);
+    }
+
+    // 数値形式（例: 1310）を "13:10" のようにフォーマットする関数
+    function formatTime(timeNum) {
+      if (isNaN(timeNum)) return "不明";
+      let hour = Math.floor(timeNum / 100);
+      let minute = timeNum % 100;
+      return hour.toString().padStart(2, '0') + ":" + minute.toString().padStart(2, '0');
     }
 
     function parseData() {
       const text = document.getElementById("inputArea").value.trim();
       const resultArea = document.getElementById("checkResult");
-      resultArea.textContent = ""; // メッセージ初期化
+      resultArea.textContent = ""; // 結果初期化
+      document.getElementById("absenceList").innerHTML = ""; // 不在一覧初期化
 
       if (!text) {
         alert("テキストが空です。Excelの表をコピーして貼り付けてください。");
         return;
       }
       
-      // 改行で行に分割 (Excelコピーはタブ区切り + 行区切り)
+      // 改行で各行を分割（Excelコピーはタブ区切り＋行区切り）
       const lines = text.split(/\r?\n/);
       
-      // テーブルHTMLを生成
+      // テーブルHTMLの生成
       let tableHtml = "<table>";
       lines.forEach((line, rowIndex) => {
         const cols = line.split("\t");
         tableHtml += "<tr>";
         cols.forEach((col, colIndex) => {
           if (rowIndex === 0) {
-            // 1行目をヘッダ扱い
             tableHtml += `<th>${col}</th>`;
           } else {
             tableHtml += `<td>${col}</td>`;
@@ -89,18 +94,18 @@
       });
       tableHtml += "</table>";
       
-      // テーブル表示
+      // テーブルを画面に表示
       document.getElementById("tableContainer").innerHTML = tableHtml;
 
-      // ---------- ここからチェック処理 ----------
+      // ---------- チェック処理 ----------
       const table = document.querySelector("#tableContainer table");
       if (!table) return;
       
-      // (1) ヘッダ行から列インデックスを特定
+      // ヘッダから各列のインデックスを特定
       const headerCells = table.rows[0].cells;
-      let idxStaff   = -1; // 担当者
-      let idxPickup  = -1; // お迎え時刻
-      let idxArrive  = -1; // リスン到着時刻
+      let idxStaff  = -1; // 担当者
+      let idxPickup = -1; // お迎え時刻
+      let idxArrive = -1; // リスン到着時刻
 
       for (let i = 0; i < headerCells.length; i++) {
         const headerText = headerCells[i].textContent.trim();
@@ -109,16 +114,15 @@
         if (headerText === "リスン到着" || headerText === "リスン到着時刻") idxArrive = i;
       }
 
-      // 必須列が見つからなければエラー
       if (idxStaff === -1 || idxPickup === -1 || idxArrive === -1) {
         resultArea.textContent = "エラー: 担当者/お迎え時刻/リスン到着時刻 の列が見つかりません。";
         return;
       }
 
-      // (2) 行データを解析して、各担当者が外出している時間帯を集計
-      //     timeList = { "スタッフ名": [ {start: X, end: Y}, ... ], ... }
+      // 担当者ごとの外出時間帯を集計するためのオブジェクト
+      // timeList = { "スタッフ名": [ {start: 数値, end: 数値, rowElement}, ... ], ... }
       const timeList = {};
-      // 担当者の総数を把握したい場合があるので、ユニークな担当者名を集める
+      // 担当者のユニーク数
       const uniqueStaffSet = new Set();
 
       for (let r = 1; r < table.rows.length; r++) {
@@ -127,16 +131,12 @@
         const pickupStr = row.cells[idxPickup].textContent.trim();
         const arriveStr = row.cells[idxArrive].textContent.trim();
 
-        // 担当者名が空の場合もあるかもしれないのでチェック
         if (!staffName) continue;  
-
         uniqueStaffSet.add(staffName);
 
-        // 時刻を数値化
         const pickupNum = parseTimeToNumber(pickupStr);
         const arriveNum = parseTimeToNumber(arriveStr);
 
-        // 正しくパースできていれば記録
         if (!isNaN(pickupNum) && !isNaN(arriveNum)) {
           if (!timeList[staffName]) {
             timeList[staffName] = [];
@@ -145,73 +145,50 @@
         }
       }
 
-      // (3) ダブルブッキングチェック
-      //     同じ担当者が重複する時間帯を持っていないか
-      //     例: (start1 < end2 && start2 < end1) なら重複
+      // (1) ダブルブッキングチェック（同じ担当者で重複する時間帯があるか）
       let doubleBookingError = false;
       for (const staff in timeList) {
-        // start でソート
         timeList[staff].sort((a, b) => a.start - b.start);
-
         for (let i = 0; i < timeList[staff].length - 1; i++) {
           const current = timeList[staff][i];
           const next    = timeList[staff][i + 1];
           if (current.end > next.start) {
-            // 重複発生
             doubleBookingError = true;
-            // エラー表示: 背景色を変える
             current.rowElement.classList.add("error");
             next.rowElement.classList.add("error");
           }
         }
       }
 
-      // (4) リスンが空になる時間がないかチェック
-      //     すべての担当者が「外出中」になる時間帯があればNG
-      //     → イベントソート(ラインスイープ)で判定
-      //
-      //     手順:
-      //       1) 「外出開始 (start)」を +1 イベント
-      //          「戻り (end)」を -1 イベントとしてリスト化
-      //       2) 時間順にソートしてrunningSumを足し引き
-      //       3) runningSum == 全スタッフ数 になったらリスンが空 (全員外出)
-      //     ※ 必要に応じて start < end になるように (endがstartより小さい可能性は要注意)
-
-      const events = []; // { time: number, delta: +1 or -1 }
+      // (2) リスンが空になる（全スタッフが外出中）時間のチェック
+      const events = [];
       const allStaffCount = uniqueStaffSet.size;
-
       for (const staff in timeList) {
         timeList[staff].forEach(interval => {
-          // もし end が start より小さいケースがあれば入れ替え(入力ミスなど)
+          // 万が一、endがstartより小さい場合は順序入れ替え
           const s = Math.min(interval.start, interval.end);
           const e = Math.max(interval.start, interval.end);
-          events.push({ time: s, delta: +1 }); // 外出開始
-          events.push({ time: e, delta: -1 }); // 戻り
+          events.push({ time: s, delta: +1 });
+          events.push({ time: e, delta: -1 });
         });
       }
-
-      // 時間順にソート (timeが同じ場合は -1(戻り) を先に処理すると安全)
       events.sort((a, b) => {
         if (a.time === b.time) {
           return a.delta - b.delta; 
         }
         return a.time - b.time;
       });
-
-      let outCount = 0; // 外出中スタッフ数
+      let outCount = 0;
       let emptyError = false;
-
       for (let i = 0; i < events.length; i++) {
         outCount += events[i].delta;
-
         if (outCount === allStaffCount) {
-          // 全スタッフ外出中 (リスンが空)
           emptyError = true;
           break;
         }
       }
 
-      // (5) 結果を画面に表示
+      // (3) 結果メッセージ表示
       let msg = "";
       if (doubleBookingError) {
         msg += "【エラー】同じ担当者で重複する時間帯があります。\n";
@@ -222,9 +199,19 @@
       if (!doubleBookingError && !emptyError) {
         msg = "OK: ダブルブッキングなし & リスンが空になる時間帯なし。";
       }
-
-      // 改行を<br>に変換して表示
       resultArea.innerHTML = msg.replace(/\n/g, "<br>");
+
+      // (4) スタッフごとの不在時間帯のリスト表示
+      let absenceHtml = "<h2>スタッフ別不在時間一覧</h2><ul>";
+      for (const staff in timeList) {
+        // 既にソート済みなので、各スタッフの時間帯をそのまま表示
+        let intervals = timeList[staff].map(interval => {
+          return formatTime(interval.start) + " ～ " + formatTime(interval.end);
+        });
+        absenceHtml += `<li>${staff}: ${intervals.join(", ")}</li>`;
+      }
+      absenceHtml += "</ul>";
+      document.getElementById("absenceList").innerHTML = absenceHtml;
     }
   </script>
 </body>
