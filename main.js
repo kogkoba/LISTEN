@@ -1,3 +1,5 @@
+<script src="main.js"></script>
+
 function calculate() {
   var origin = document.getElementById('origin').value;
   var destination = document.getElementById('destination').value;
