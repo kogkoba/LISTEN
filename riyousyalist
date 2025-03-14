@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>表データのパースサンプル</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    th {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>表データをオブジェクト配列に変換＆表示</h1>
+
+<!-- ユーザーがタブ区切りの表を貼り付けるエリア -->
+<textarea id="inputArea" placeholder="ここにタブ区切りの表を貼り付け"></textarea>
+<br>
+<button onclick="parseTable()">変換する</button>
+
+<!-- 変換後のJSON表示（デバッグ用） -->
+<pre id="jsonOutput" style="border:1px solid #ccc; padding:10px; margin-top:10px;"></pre>
+
+<!-- 変換後のテーブル表示 -->
+<table id="resultTable">
+  <thead>
+    <tr>
+      <th>No</th>
+      <th>氏名</th>
+      <th>お迎え時刻</th>
+      <th>リスン到着</th>
+      <th>担当</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+// 「行ラベル」と「オブジェクトのプロパティ名」をマッピング
+// 表の1列目(行見出し)に書かれている文字列をキーとして使います。
+const rowLabelMap = {
+  "No": "no",
+  "氏名": "name",
+  "お迎え時刻": "pickupTime",
+  "お迎え場所": "pickupLocation", // 例: 必要に応じて使う
+  "リスン到着": "arrivalTime",
+  "担当": "driver",
+  "次": "next" // 例: 必要に応じて使う
+};
+
+/**
+ * ユーザーが貼り付けたタブ区切りデータを解析し、
+ * 各列を1人分のオブジェクトにまとめた配列を作る
+ */
+function parseTable() {
+  const inputText = document.getElementById('inputArea').value.trim();
+  if (!inputText) {
+    alert("データがありません");
+    return;
+  }
+  
+  // 1. 行ごとに分割
+  const lines = inputText.split('\n');
+
+  // 2. 解析用の一時オブジェクト格納用
+  //    列数が不明なので、列が増えるたびに要素を作る
+  let parsedData = [];
+
+  // 行を順番に処理
+  for (let i = 0; i < lines.length; i++) {
+    const row = lines[i].split('\t'); // タブ区切りで分割
+    if (row.length <= 1) {
+      // 空行 or タブ区切りが見当たらない場合はスキップ
+      continue;
+    }
+
+    // 行ラベル (例: "No", "氏名", "お迎え時刻" etc.)
+    const label = row[0].trim();
+
+    // rowLabelMap に登録がない行は無視する（例: "お迎え場所"を使わないならスキップ）
+    // 使いたい行だけを対象にする
+    if (!rowLabelMap[label]) {
+      // 必要に応じて、すべての行を取り込みたい場合はここを削除
+      continue;
+    }
+
+    const fieldName = rowLabelMap[label]; // "no" / "name" / "pickupTime" / ...
+
+    // 残りの列（1列目を除く）をそれぞれ parsedData[x] に格納する
+    for (let colIndex = 1; colIndex < row.length; colIndex++) {
+      const cellValue = row[colIndex].trim();
+      // parsedData[colIndex - 1] が未定義ならオブジェクトを作る
+      if (!parsedData[colIndex - 1]) {
+        parsedData[colIndex - 1] = {};
+      }
+      // fieldName をキーとして値をセット
+      parsedData[colIndex - 1][fieldName] = cellValue;
+    }
+  }
+
+  // 3. 結果をJSON形式で表示（デバッグ用）
+  document.getElementById('jsonOutput').textContent = JSON.stringify(parsedData, null, 2);
+
+  // 4. 結果テーブルに表示
+  displayResultTable(parsedData);
+}
+
+/**
+ * parseTable()で得られた配列をテーブルに表示する
+ */
+function displayResultTable(dataArray) {
+  const tbody = document.querySelector("#resultTable tbody");
+  tbody.innerHTML = ""; // 既存の行をクリア
+
+  dataArray.forEach(obj => {
+    // obj は例: { no: "1", name: "松井", pickupTime: "1300", arrivalTime: "1340", driver: "濵" }
+    const tr = document.createElement('tr');
+    
+    // No
+    const tdNo = document.createElement('td');
+    tdNo.textContent = obj.no || "";
+    tr.appendChild(tdNo);
+
+    // 氏名
+    const tdName = document.createElement('td');
+    tdName.textContent = obj.name || "";
+    tr.appendChild(tdName);
+
+    // お迎え時刻
+    const tdPickup = document.createElement('td');
+    tdPickup.textContent = obj.pickupTime || "";
+    tr.appendChild(tdPickup);
+
+    // リスン到着
+    const tdArrival = document.createElement('td');
+    tdArrival.textContent = obj.arrivalTime || "";
+    tr.appendChild(tdArrival);
+
+    // 担当
+    const tdDriver = document.createElement('td');
+    tdDriver.textContent = obj.driver || "";
+    tr.appendChild(tdDriver);
+
+    tbody.appendChild(tr);
+  });
+}
+</script>
+
+</body>
+</html>
