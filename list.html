@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>コピペ表の整形サンプル</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .section {
+      margin-top: 20px;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px 8px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>コピペ表の整形サンプル</h1>
+
+<!-- 1. コピペ用テキストエリア -->
+<div>
+  <label for="inputArea">ここに表をコピペしてください:</label><br>
+  <textarea id="inputArea" placeholder="Excel等からコピーして貼り付け"></textarea>
+  <br>
+  <button onclick="convertTable()">変換する</button>
+</div>
+
+<!-- 2. そのままの形を表示 -->
+<div class="section">
+  <h2>そのままの形</h2>
+  <div id="rawOutput" style="white-space: pre-wrap; border:1px solid #ccc; padding: 10px;"></div>
+</div>
+
+<!-- 3. 整形したテーブルを表示 -->
+<div class="section">
+  <h2>整形後のテーブル</h2>
+  <div id="tableContainer"></div>
+</div>
+
+<script>
+function convertTable() {
+  // 1. テキストエリアから入力を取得
+  const inputText = document.getElementById('inputArea').value.trim();
+  
+  // 2. そのまま表示
+  //    - タブ(\t)はスペースに置き換え、改行(\n)は改行のまま
+  //    - あるいは `white-space: pre-wrap;` スタイルを使うことで
+  //      そのままのテキスト表示が可能です
+  document.getElementById('rawOutput').textContent = inputText;
+
+  // 3. 整形してテーブルを作成
+  //    - 行ごとに分割 (改行区切り)
+  //    - 列ごとに分割 (タブ区切り)
+  const lines = inputText.split('\n');
+  
+  // テーブル要素を作成
+  const table = document.createElement('table');
+
+  // 各行を処理
+  for (let i = 0; i < lines.length; i++) {
+    // 空行を除外
+    if (!lines[i].trim()) {
+      continue;
+    }
+
+    const row = document.createElement('tr');
+    const cols = lines[i].split('\t');
+
+    // 各列を処理
+    for (let j = 0; j < cols.length; j++) {
+      // 1行目だけ th (ヘッダセル) にしたい場合は以下のように条件分岐もできる
+      // ここではすべて td に統一
+      const cell = document.createElement('td');
+      cell.textContent = cols[j];
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  }
+
+  // 4. テーブルを表示する
+  const tableContainer = document.getElementById('tableContainer');
+  tableContainer.innerHTML = ''; // 既存の内容をクリア
+  tableContainer.appendChild(table);
+}
+</script>
+
+</body>
+</html>
