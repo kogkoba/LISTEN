@@ -1,31 +1,66 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>所要時間計算アプリ</title>
-    <base target="_top">
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <div class="container">
-      <h1>所要時間計算アプリ</h1>
-      <div class="form-group">
-        <label for="origin">住所１:</label>
-        <input type="text" id="origin" name="origin" placeholder="出発地を入力">
-      </div>
-      <!-- 例：幅いっぱい、縦600px -->
-<iframe 
-  src="https://script.google.com/macros/s/AKfycbyQitr3QP4Q0PtgFHdJk5Xqss1bDm_Cv32_NUbTaQSJiMBrjaV-9Gajtm_t3U-Kgi180g/exec" 
-  width="100%" 
-  height="600" 
-  style="border:none;"
->
-<label for="destination">到着地:</label>
-        <input type="text" id="destination" name="destination" placeholder="到着地を入力">
-      </div>
-      <button onclick="calculate()">計算する</button>
-      <div id="result"></div>
-    </div>
-    <script src="script.js"></script>
-  </body>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>所要時間計算アプリ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>所要時間計算アプリ</h1>
+  
+  <div>
+    <label for="origin">出発地：</label>
+    <input type="text" id="origin" placeholder="例：東京駅">
+  </div>
+  
+  <div>
+    <label for="destination">目的地：</label>
+    <input type="text" id="destination" placeholder="例：京都駅">
+  </div>
+  
+  <button onclick="calcTime()">計算する</button>
+  
+  <div id="result" style="margin-top: 1em; font-weight: bold;"></div>
+  
+  <script>
+    // ここにGASのWebアプリURLを貼り付ける
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx.../exec";
+    
+    async function calcTime() {
+      const origin = document.getElementById('origin').value;
+      const destination = document.getElementById('destination').value;
+      
+      if (!origin || !destination) {
+        document.getElementById('result').innerText = "出発地と目的地を入力してください。";
+        return;
+      }
+      
+      document.getElementById('result').innerText = "計算中…";
+      
+      // クエリパラメータで送る
+      const url = `${GAS_ENDPOINT}?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+      
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // GAS側からJSONが返ってくる
+        const data = await response.json();
+        
+        if (data.error) {
+          // 何らかのエラー
+          document.getElementById('result').innerText = "エラー: " + data.error;
+        } else {
+          // 所要時間を表示
+          document.getElementById('result').innerText = "所要時間: " + data.duration;
+        }
+      } catch (err) {
+        // 通信エラーなど
+        document.getElementById('result').innerText = "通信エラー: " + err.message;
+      }
+    }
+  </script>
+</body>
 </html>
