@@ -50,23 +50,30 @@
 
 <script>
 /**
- * A列として固定表示したいリスト
- * （行数を揃えたい場合は、コピペデータと同じ行数になるように調整）
+ * A列として固定表示したいリスト（指定された順番）
  */
 const fixedColumn = [
   "名前",
   "和先生",
   "F先生",
-　"H先生",
+  "H先生",
   "K先生",
   "Y先生",
-　"S先生",
+  "S先生",
   "久保先生",
   "川田先生",
-  "松村先生"
+  "松村先生",
   "一色先生",
-  "吉村先生",
+  "吉村先生"
 ];
+
+/**
+ * ページ読み込み時、まずは貼り付けデータがない状態でも
+ * A列（先生名リスト）だけ表示する
+ */
+window.addEventListener('DOMContentLoaded', () => {
+  convertTable(); // 空のテキストエリアを元にテーブルを作成
+});
 
 /**
  * 変換ボタンを押したときに呼ばれる処理
@@ -76,13 +83,13 @@ function convertTable() {
   const inputText = document.getElementById('inputArea').value.trim();
   
   // 2. 行ごとに分割 (改行区切り)
-  const lines = inputText.split('\n');
+  //    貼り付けデータがない場合は空配列になる想定
+  const lines = inputText ? inputText.split('\n') : [];
 
   // テーブル要素を作成
   const table = document.createElement('table');
 
   // 3. 行ループ (固定列の行数に合わせる)
-  //    ※ もし貼り付けデータが固定列より多い/少ない場合はロジックを調整
   for (let i = 0; i < fixedColumn.length; i++) {
     const tr = document.createElement('tr');
     
@@ -91,8 +98,8 @@ function convertTable() {
     fixedTd.textContent = fixedColumn[i];
     tr.appendChild(fixedTd);
 
-    // --- 貼り付けデータ ---
-    // i番目の行が存在すれば、タブ区切りでsplitして追加
+    // --- 貼り付けデータをB列以降に追加 ---
+    // i番目の行が存在し、内容があれば
     if (i < lines.length && lines[i].trim()) {
       const cols = lines[i].split('\t');
       // 列ループ
