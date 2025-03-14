@@ -1,65 +1,56 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>所要時間計算アプリ</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>JSONPで所要時間取得</title>
 </head>
 <body>
-  <h1>所要時間計算アプリ</h1>
+  <label>出発地: <input id="origin"></label><br>
+  <label>目的地: <input id="destination"></label><br>
+  <button onclick="calcTime()">計算</button>
   
-  <div>
-    <label for="origin">出発地：</label>
-    <input type="text" id="origin" placeholder="例：東京駅">
-  </div>
-  
-  <div>
-    <label for="destination">目的地：</label>
-    <input type="text" id="destination" placeholder="例：京都駅">
-  </div>
-  
-  <button onclick="calcTime()">計算する</button>
-  
-  <div id="result" style="margin-top: 1em; font-weight: bold;"></div>
-  
+  <div id="result"></div>
+
   <script>
-    // ここにGASのWebアプリURLを貼り付ける
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQitr3QP4Q0PtgFHdJk5Xqss1bDm_Cv32_NUbTaQSJiMBrjaV-9Gajtm_t3U-Kgi180g/exec";
-    
-    async function calcTime() {
-      const origin = document.getElementById('origin').value;
-      const destination = document.getElementById('destination').value;
-      
+    // Apps Script のデプロイURL（末尾 /exec）
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbx.../exec";
+
+    // JSONP のコールバック関数名
+    const CALLBACK_NAME = "myCallback";
+
+    // JSONP コールバック
+    function myCallback(data) {
+      // data = {duration: "..."}
+      if (data.duration) {
+        document.getElementById("result").textContent = "所要時間: " + data.duration;
+      } else {
+        document.getElementById("result").textContent = "取得失敗";
+      }
+    }
+
+    function calcTime() {
+      const origin = document.getElementById("origin").value;
+      const destination = document.getElementById("destination").value;
       if (!origin || !destination) {
-        document.getElementById('result').innerText = "出発地と目的地を入力してください。";
+        alert("出発地と目的地を入力してください");
         return;
       }
       
-      document.getElementById('result').innerText = "計算中…";
+      // JSONP用のURL
+      // 例: .../exec?origin=東京駅&destination=京都駅&callback=myCallback
+      const url = GAS_ENDPOINT
+        + "?origin=" + encodeURIComponent(origin)
+        + "&destination=" + encodeURIComponent(destination)
+        + "&callback=" + CALLBACK_NAME;
+
+      // scriptタグを動的に生成して読み込む
+      const script = document.createElement('script');
+      script.src = url;
+      // 前のリクエストのscriptタグが残ると連続アクセス時に不都合なので、都度削除
+      script.onload = () => document.body.removeChild(script);
+      document.body.appendChild(script);
       
-      // クエリパラメータで送る
-      const url = `${GAS_ENDPOINT}?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
-      
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        // GAS側からJSONが返ってくる
-        const data = await response.json();
-        
-        if (data.error) {
-          // 何らかのエラー
-          document.getElementById('result').innerText = "エラー: " + data.error;
-        } else {
-          // 所要時間を表示
-          document.getElementById('result').innerText = "所要時間: " + data.duration;
-        }
-      } catch (err) {
-        // 通信エラーなど
-        document.getElementById('result').innerText = "通信エラー: " + err.message;
-      }
+      document.getElementById("result").textContent = "取得中...";
     }
   </script>
 </body>
