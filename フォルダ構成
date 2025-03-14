@@ -26,12 +26,12 @@
 
 / (プロジェクトルート)
 ├─ index.html          // メインページ（既存のプログラムを含む）
-├─ program2.html       // 新しく追加するプログラム用のHTML
+├─ list.html       // 新しく追加するプログラム用のHTML
 ├─ css/
 │   ├─ style.css       // 既存プログラム用のCSS
-│   └─ program2.css    // 新しいプログラム用のCSS
+│   └─ list.css    // 新しいプログラム用のCSS
 ├─ js/
 │   ├─ main.js         // 既存プログラム用のJavaScript
-│   └─ program2.js     // 新しいプログラム用のJavaScript
+│   └─ list.js     // 新しいプログラム用のJavaScript
 └─ assets/             // 画像やその他の静的ファイル
 
