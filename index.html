@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>デイサービスお迎えシミュレーション</title>
   <style>
-    /* ページ全体のスタイル */
     body {
       font-family: sans-serif;
       margin: 20px;
@@ -18,12 +17,10 @@
       border: 2px dashed #666;
       padding: 8px;
       width: 80%;
-      min-height: 200px;
+      min-height: 100px;
       margin: 0 auto;
       outline: none;
     }
-
-    /* ボタン */
     #parseButton {
       display: block;
       margin: 10px auto;
@@ -31,7 +28,7 @@
       cursor: pointer;
     }
 
-    /* Canvasの見た目 */
+    /* Canvasを中央寄せ＋背景色 */
     #gameCanvas {
       display: block;
       margin: 20px auto;
@@ -49,21 +46,84 @@
   <div id="pasteArea" contenteditable="true">
     ここにExcelの表をペースト
   </div>
-
-  <!-- 解析ボタン -->
   <button id="parseButton">表を解析してシミュレーションに反映</button>
 
-  <!-- ゲーム用Canvas -->
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <!-- シミュレーション用Canvas -->
+  <canvas id="gameCanvas" width="1024" height="1024"></canvas>
 
   <script>
-    // 「表を解析してシミュレーションに反映」ボタンをクリックしたときの処理
+    // -----------------------------------------
+    // 1) タイルマップを読み込み＆表示する処理
+    // -----------------------------------------
+    let mapData = null;       // data/map.json の内容を格納
+    let tileImages = {};      // タイル画像のキャッシュ
+    let ctx = null;           // Canvasコンテキスト
+
+    window.addEventListener("load", () => {
+      // Canvasのコンテキストを取得
+      const canvas = document.getElementById("gameCanvas");
+      ctx = canvas.getContext("2d");
+
+      // map.json を読み込む
+      loadMapJson();
+    });
+
+    function loadMapJson() {
+      fetch("data/map.json")
+        .then(res => res.json())
+        .then(data => {
+          mapData = data;
+          // タイル画像を読み込む
+          loadTileImages(mapData.tileMapping, () => {
+            // 読み込み完了後、マップを描画
+            drawMap();
+          });
+        })
+        .catch(err => {
+          console.error("map.jsonの読み込み失敗:", err);
+        });
+    }
+
+    function loadTileImages(mapping, callback) {
+      const keys = Object.keys(mapping);
+      let loadedCount = 0;
+      const total = keys.length;
+
+      keys.forEach(key => {
+        const img = new Image();
+        img.src = mapping[key];
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === total) {
+            callback();
+          }
+        };
+        tileImages[key] = img;
+      });
+    }
+
+    function drawMap() {
+      if (!mapData || !ctx) return;
+      const tileSize = mapData.tileSize;
+      for (let y = 0; y < mapData.mapHeight; y++) {
+        for (let x = 0; x < mapData.mapWidth; x++) {
+          const tileId = mapData.tiles[y][x];
+          const img = tileImages[tileId];
+          if (img) {
+            ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
+          }
+        }
+      }
+    }
+
+    // -----------------------------------------
+    // 2) Excel表をペースト＆解析して反映する処理
+    // -----------------------------------------
     document.getElementById("parseButton").addEventListener("click", () => {
-      // 貼り付けたHTMLを取得
       const pasteArea = document.getElementById("pasteArea");
       const pastedHTML = pasteArea.innerHTML;
 
-      // DOMParserでHTMLをパースしてテーブル要素を探す
+      // 貼り付けられたHTMLをパース
       const parser = new DOMParser();
       const doc = parser.parseFromString(pastedHTML, "text/html");
       const table = doc.querySelector("table");
@@ -73,15 +133,13 @@
         return;
       }
 
-      // テーブル内の<tr>を全て取得
+      // テーブルの行・セルを配列化
       const rows = table.querySelectorAll("tr");
       const data = [];
-
       rows.forEach((row) => {
         const cells = row.querySelectorAll("td, th");
         const rowData = [];
         cells.forEach((cell) => {
-          // セルのテキストを取り出して配列に格納
           rowData.push(cell.innerText.trim());
         });
         data.push(rowData);
@@ -90,22 +148,14 @@
       console.log("Excel表を配列として取得:", data);
       alert("解析完了！コンソールを確認してください。");
 
-      // ここで「data」を使ってシミュレーションロジックに反映する
-      // 例: Canvas上にテキストを描画
-      const canvas = document.getElementById("gameCanvas");
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // テーブルの先頭行(見出し)を表示してみる例
+      // 例：Canvas上に、解析したExcelの1行目をテキスト表示してみる
+      // 既存のマップの上に文字を重ね描きする
+      drawMap(); // まずマップを再描画(消したい場合)
+      ctx.fillStyle = "red";
+      ctx.font = "24px sans-serif";
       if (data.length > 0) {
-        const headers = data[0].join(", ");
-        ctx.fillStyle = "#000";
-        ctx.font = "20px sans-serif";
-        ctx.fillText("見出し: " + headers, 20, 40);
+        ctx.fillText("1行目: " + data[0].join(", "), 20, 40);
       }
-
-      // 必要に応じて、実際の送迎シミュレーション処理をここに実装
-      // ...
     });
   </script>
 </body>
