@@ -23,8 +23,8 @@
     }
     select, input[type="text"] {
       width: 90%;
-      padding: 4px;
       box-sizing: border-box;
+      padding: 4px;
     }
   </style>
 </head>
@@ -36,10 +36,11 @@
   <thead>
     <tr>
       <th>A列<br>名前</th>
-      <th>B列<br>出勤</th>
-      <th>C列<br>勤務時間</th>
-      <th>D列<br>送迎可否</th>
-      <th>E列<br>留守番可否</th>
+      <th>B列<br>出欠</th>
+      <th>C列<br>出勤時間</th>
+      <th>D列<br>退勤時間</th>
+      <th>E列<br>送迎可否</th>
+      <th>F列<br>留守番可否</th>
     </tr>
   </thead>
   <tbody>
@@ -48,26 +49,25 @@
 </table>
 
 <script>
-// スタッフ情報（A列, 送迎、留守番は固定）
-// 固定値は各スタッフごとに設定可能
+// スタッフ情報（名前, 送迎可否, 留守番可否）
 const staffList = [
-  { name: "和先生", pickUp: "可",   watch: "可"   },
-  { name: "F先生",  pickUp: "可",   watch: "不可" },
-  { name: "H先生",  pickUp: "不可", watch: "可"   },
-  { name: "K先生",  pickUp: "可",   watch: "可"   },
-  { name: "Y先生",  pickUp: "不可", watch: "不可" },
-  { name: "S先生",  pickUp: "可",   watch: "不可" },
-  { name: "久保先生", pickUp: "可", watch: "可"   },
-  { name: "川田先生", pickUp: "可", watch: "不可" },
-  { name: "松村先生", pickUp: "不可", watch: "可"   },
-  { name: "一色先生", pickUp: "可", watch: "不可" },
-  { name: "吉村先生", pickUp: "不可", watch: "不可" }
+  { name: "和先生",   pickUp: "可", watch: "可" },
+  { name: "F先生",    pickUp: "可", watch: "可" },
+  { name: "H先生",    pickUp: "可", watch: "可" },
+  { name: "K先生",    pickUp: "可", watch: "可" },
+  { name: "Y先生",    pickUp: "可", watch: "可" },
+  { name: "S先生",    pickUp: "可", watch: "可" },
+  { name: "久保先生", pickUp: "可", watch: "不可" },
+  { name: "川田先生", pickUp: "不可", watch: "可" },
+  { name: "松村先生", pickUp: "不可", watch: "可" },
+  { name: "一色先生", pickUp: "不可", watch: "可" },
+  { name: "吉村先生", pickUp: "不可", watch: "可" }
 ];
 
-// 出勤のプルダウンの選択肢
-const attendanceOptions = ["フル", "半日", "欠勤"];
+// 出欠のプルダウン選択肢
+const attendanceOptions = ["フル", "パートタイマー", "欠"];
 
-// ページ読み込み時にテーブルを生成
+// ページ読み込み時にテーブル生成
 window.addEventListener('DOMContentLoaded', () => {
   const tbody = document.querySelector("#staffTable tbody");
   
@@ -79,43 +79,74 @@ window.addEventListener('DOMContentLoaded', () => {
     tdName.textContent = staff.name;
     tr.appendChild(tdName);
     
-    // B列: 出勤（プルダウン）
+    // B列: 出欠 (プルダウン)
     const tdAttendance = document.createElement('td');
     const selectAttendance = document.createElement('select');
-    // 初期選択肢として空行を追加（選択肢なし状態も可能にするなら）
-    const defaultOption = document.createElement('option');
-    defaultOption.value = "";
-    defaultOption.textContent = "選択";
-    selectAttendance.appendChild(defaultOption);
-    
+    // 初期状態として「選択肢なし」を入れたくないなら省略してOK
+    // const defaultOption = document.createElement('option');
+    // defaultOption.value = "";
+    // defaultOption.textContent = "選択";
+    // selectAttendance.appendChild(defaultOption);
+
     attendanceOptions.forEach(optionText => {
       const option = document.createElement('option');
       option.value = optionText;
       option.textContent = optionText;
       selectAttendance.appendChild(option);
     });
+    // デフォルトで「フル」を選択したい場合
+    selectAttendance.value = "フル";
     tdAttendance.appendChild(selectAttendance);
     tr.appendChild(tdAttendance);
     
-    // C列: 勤務時間（入力欄）
-    const tdWorkTime = document.createElement('td');
-    const inputWorkTime = document.createElement('input');
-    inputWorkTime.type = "text";
-    inputWorkTime.placeholder = "例: 09:00～17:00";
-    tdWorkTime.appendChild(inputWorkTime);
-    tr.appendChild(tdWorkTime);
+    // C列: 出勤時間
+    const tdStart = document.createElement('td');
+    const inputStart = document.createElement('input');
+    inputStart.type = "text";
+    inputStart.placeholder = "例: 09:00";
+    // デフォルトで disabled (「フル」「欠」は時間不要の想定なら)
+    inputStart.disabled = true; 
+    tdStart.appendChild(inputStart);
+    tr.appendChild(tdStart);
     
-    // D列: 送迎可否（固定）
+    // D列: 退勤時間
+    const tdEnd = document.createElement('td');
+    const inputEnd = document.createElement('input');
+    inputEnd.type = "text";
+    inputEnd.placeholder = "例: 17:00";
+    // デフォルトで disabled
+    inputEnd.disabled = true;
+    tdEnd.appendChild(inputEnd);
+    tr.appendChild(tdEnd);
+    
+    // E列: 送迎可否 (固定)
     const tdPickup = document.createElement('td');
     tdPickup.textContent = staff.pickUp;
     tr.appendChild(tdPickup);
     
-    // E列: 留守番可否（固定）
+    // F列: 留守番可否 (固定)
     const tdWatch = document.createElement('td');
     tdWatch.textContent = staff.watch;
     tr.appendChild(tdWatch);
     
+    // テーブルに行を追加
     tbody.appendChild(tr);
+
+    // --- イベントリスナー: 出欠が「パートタイマー」のときのみ 時間入力を有効化 ---
+    selectAttendance.addEventListener('change', () => {
+      if (selectAttendance.value === "パートタイマー") {
+        // 出勤・退勤時間を入力可能にする
+        inputStart.disabled = false;
+        inputEnd.disabled = false;
+      } else {
+        // それ以外は入力不要 → disabledにする
+        inputStart.disabled = true;
+        inputEnd.disabled = true;
+        // 必要なら値をクリア
+        inputStart.value = "";
+        inputEnd.value = "";
+      }
+    });
   });
 });
 </script>
