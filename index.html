@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <script src="main.js"></script>
   <title>JSONPで所要時間取得</title>
 </head>
 <body>
@@ -17,7 +18,7 @@
 
   <script>
     // Apps Script の「ウェブアプリURL (末尾 /exec)」
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQitr3QP4Q0PtgFHdJk5Xqss1bDm_Cv32_NUbTaQSJiMBrjaV-9Gajtm_t3U-Kgi180g/exec";
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyQitr3QP4Q0PtgFHdJk5Xqss1bDm_Cv32_NUbTaQSJiMBrjaV-9Gajtm_t3U-Kgi180g/exec/exec";
 
     // JSONP用のコールバック関数（グローバルに定義する）
     function myCallback(data) {
