@@ -2,23 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>固定列＋コピペデータ結合サンプル</title>
+  <title>スタッフ一覧</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 20px;
-    }
-    textarea {
-      width: 100%;
-      height: 150px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .section {
-      margin-top: 20px;
     }
     table {
       border-collapse: collapse;
@@ -28,95 +16,89 @@
       border: 1px solid #ccc;
       padding: 4px 8px;
     }
+    th {
+      background: #f0f0f0;
+    }
+    input[type="text"] {
+      width: 100px;
+    }
   </style>
 </head>
 <body>
 
-<h1>固定列＋コピペデータ結合サンプル</h1>
+<h1>スタッフ一覧</h1>
 
-<!-- 1. コピペ用テキストエリア -->
-<div>
-  <label for="inputArea">ここにデータをコピペ:</label><br>
-  <textarea id="inputArea" placeholder="タブ区切りで貼り付け"></textarea>
-  <br>
-  <button onclick="convertTable()">変換する</button>
-</div>
-
-<!-- 2. 整形後のテーブルを表示 -->
-<div class="section">
-  <h2>整形後のテーブル</h2>
-  <div id="tableContainer"></div>
-</div>
+<!-- テーブルを表示する要素 -->
+<table id="staffTable">
+  <thead>
+    <tr>
+      <th>A列<br>名前</th>
+      <th>B列<br>出欠</th>
+      <th>C列<br>送迎可否</th>
+      <th>D列<br>留守番可否</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- JavaScriptで行を生成します -->
+  </tbody>
+</table>
 
 <script>
-/**
- * A列として固定表示したいリスト（指定された順番）
- */
-const fixedColumn = [
-  "名前",
-  "和先生",
-  "F先生",
-  "H先生",
-  "K先生",
-  "Y先生",
-  "S先生",
-  "久保先生",
-  "川田先生",
-  "松村先生",
-  "一色先生",
-  "吉村先生"
+// スタッフ情報を配列で管理
+// A列の名前、C列の送迎可否、D列の留守番可否をここにまとめる
+// 必要に応じて pickUp: "可", watch: "不可" のように設定してください
+const staffList = [
+  { name: "和先生", pickUp: "可",   watch: "可"   },
+  { name: "F先生",  pickUp: "可",   watch: "可" },
+  { name: "H先生",  pickUp: "可",watch: "可"   },
+  { name: "K先生",  pickUp: "可",   watch: "可"   },
+  { name: "Y先生",  pickUp: "可",watch: "可" },
+  { name: "S先生",  pickUp: "可",   watch: "可" },
+  { name: "久保先生", pickUp: "可", watch: "不可"   },
+  { name: "川田先生", pickUp: "不可", watch: "可" },
+  { name: "松村先生", pickUp: "可",watch: "不可" },
+  { name: "一色先生", pickUp: "不可", watch: "不可" },
+  { name: "吉村先生", pickUp: "可",watch: "不可" }
 ];
 
-/**
- * ページ読み込み時、まずは貼り付けデータがない状態でも
- * A列（先生名リスト）だけ表示する
- */
+// ページ読み込み時にテーブルを生成
 window.addEventListener('DOMContentLoaded', () => {
-  convertTable(); // 空のテキストエリアを元にテーブルを作成
-});
+  const tbody = document.querySelector("#staffTable tbody");
 
-/**
- * 変換ボタンを押したときに呼ばれる処理
- */
-function convertTable() {
-  // 1. テキストエリアから入力を取得
-  const inputText = document.getElementById('inputArea').value.trim();
-  
-  // 2. 行ごとに分割 (改行区切り)
-  //    貼り付けデータがない場合は空配列になる想定
-  const lines = inputText ? inputText.split('\n') : [];
-
-  // テーブル要素を作成
-  const table = document.createElement('table');
-
-  // 3. 行ループ (固定列の行数に合わせる)
-  for (let i = 0; i < fixedColumn.length; i++) {
+  // staffList の各要素に対して行を作成
+  staffList.forEach(staff => {
+    // <tr>を作る
     const tr = document.createElement('tr');
-    
-    // --- A列(固定列) ---
-    const fixedTd = document.createElement('td');
-    fixedTd.textContent = fixedColumn[i];
-    tr.appendChild(fixedTd);
 
-    // --- 貼り付けデータをB列以降に追加 ---
-    // i番目の行が存在し、内容があれば
-    if (i < lines.length && lines[i].trim()) {
-      const cols = lines[i].split('\t');
-      // 列ループ
-      for (let j = 0; j < cols.length; j++) {
-        const td = document.createElement('td');
-        td.textContent = cols[j];
-        tr.appendChild(td);
-      }
-    }
-    table.appendChild(tr);
-  }
+    // A列: 名前
+    const tdName = document.createElement('td');
+    tdName.textContent = staff.name;
+    tr.appendChild(tdName);
 
-  // 4. テーブルを表示する
-  const tableContainer = document.getElementById('tableContainer');
-  tableContainer.innerHTML = ''; // 既存の内容をクリア
-  tableContainer.appendChild(table);
-}
+    // B列: 出欠 (ユーザー入力)
+    // 例: フル、半日、"9:00～13:00" 等を自由に入力できるようにする
+    const tdAttendance = document.createElement('td');
+    const inputAttendance = document.createElement('input');
+    inputAttendance.type = "text";
+    inputAttendance.placeholder = "例: フル";
+    // 必要なら初期値を設定: inputAttendance.value = "フル";
+    tdAttendance.appendChild(inputAttendance);
+    tr.appendChild(tdAttendance);
+
+    // C列: 送迎可否 (固定)
+    const tdPickup = document.createElement('td');
+    tdPickup.textContent = staff.pickUp; // "可" or "不可"
+    tr.appendChild(tdPickup);
+
+    // D列: 留守番可否 (固定)
+    const tdWatch = document.createElement('td');
+    tdWatch.textContent = staff.watch; // "可" or "不可"
+    tr.appendChild(tdWatch);
+
+    // 行をtbodyに追加
+    tbody.appendChild(tr);
+  });
+});
 </script>
 
 </body>
