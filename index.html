@@ -2,183 +2,118 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>デイサービスお迎えシミュレーション</title>
-  <!-- Maps JavaScript API の読み込み（APIキーを適切なものに変更してください） -->
+  <title>送迎所要時間計算プログラム</title>
+  <!-- Google Maps API の読み込み（YOUR_API_KEY はご自身のAPIキーに変更） -->
   <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-    }
-    h1, h2 {
-      text-align: center;
-    }
-    /* Excelを貼り付ける領域 */
-    #pasteArea {
-      border: 2px dashed #666;
-      padding: 8px;
-      width: 80%;
-      min-height: 100px;
-      margin: 0 auto;
-      outline: none;
-    }
-    #parseButton {
-      display: block;
-      margin: 10px auto;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-    /* Canvasのスタイル */
-    #gameCanvas {
-      display: block;
-      margin: 20px auto;
-      background: #eee;
-    }
-    /* map.json の表示領域 */
-    #mapJsonDisplay {
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-      padding: 10px;
-      white-space: pre-wrap;
-      margin: 20px auto;
-      width: 80%;
-      font-family: monospace;
-    }
+    body { font-family: sans-serif; margin: 20px; }
+    h1, h2 { text-align: center; }
+    label { display: block; margin: 10px 0; }
+    select, input { width: 300px; padding: 5px; }
+    #output { margin-top: 20px; border: 1px solid #ccc; padding: 10px; }
   </style>
 </head>
 <body>
-  <h1>デイサービスお迎えシミュレーション</h1>
+  <h1>送迎所要時間計算プログラム</h1>
+  <form id="calcForm">
+    <label>
+      スタッフ名:
+      <input type="text" id="staffName" placeholder="例: K先生">
+    </label>
+    <label>
+      出発地:
+      <select id="originSelect"></select>
+    </label>
+    <label>
+      経由地（任意）:
+      <select id="waypointSelect">
+        <option value="">（なし）</option>
+      </select>
+    </label>
+    <label>
+      到着地:
+      <select id="destinationSelect"></select>
+    </label>
+    <label>
+      出発時刻:
+      <input type="time" id="departureTime" value="13:00">
+    </label>
+    <button type="button" id="calcButton">所要時間を計算する</button>
+  </form>
   
-  <!-- Google Maps APIによるルート検索の簡単なテスト -->
-  <script>
-    window.addEventListener("load", () => {
-      const directionsService = new google.maps.DirectionsService();
-      const request = {
-        origin: "東京駅",
-        destination: "秋葉原駅",
-        travelMode: google.maps.TravelMode.DRIVING
-      };
-      directionsService.route(request, (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK) {
-          const leg = result.routes[0].legs[0];
-          console.log("距離:", leg.distance.text, "時間:", leg.duration.text);
-          alert("ルート検索結果\n距離: " + leg.distance.text + "\n時間: " + leg.duration.text);
-        } else {
-          console.error("Directions request failed:", status);
-          alert("ルート検索に失敗しました: " + status);
-        }
-      });
-    });
-  </script>
-  
-  <!-- Excelの表をペーストする領域 -->
-  <p style="text-align:center;">Excelの表をコピーして、下の枠に貼り付けてください。</p>
-  <div id="pasteArea" contenteditable="true">ここにExcelの表をペースト</div>
-  <button id="parseButton">表を解析してシミュレーションに反映</button>
-  
-  <!-- シミュレーション用Canvas -->
-  <canvas id="gameCanvas" width="1024" height="1024"></canvas>
-  
-  <!-- map.json の内容表示 -->
-  <h2>map.json の内容</h2>
-  <pre id="mapJsonDisplay">Loading map.json...</pre>
+  <div id="output"></div>
   
   <script>
-    // -------------------------------
-    // ① タイルマップの読み込み＆表示
-    // -------------------------------
-    let mapData = null;       // data/map.json の内容
-    let tileImages = {};      // タイル画像のキャッシュ
-    let ctx = null;           // Canvasコンテキスト
+    // ① スプレッドシートのデータを模擬（本来は外部から取得することも可能）
+    // ここでは「場所の名前 - 住所」のリストとして定義
+    const places = {
+      "池田": "東京都文京区池田町1-1-1",
+      "清家": "東京都文京区清家町2-2-2",
+      "藤井": "東京都文京区藤井町3-3-3",
+      "デイサービス": "東京都文京区デイサービス町4-4-4"
+    };
 
-    window.addEventListener("load", () => {
-      const canvas = document.getElementById("gameCanvas");
-      ctx = canvas.getContext("2d");
-      loadMapJson();
-    });
-
-    function loadMapJson() {
-      fetch("data/map.json")
-        .then(res => res.json())
-        .then(data => {
-          mapData = data;
-          displayMapJson(data);
-          loadTileImages(mapData.tileMapping, drawMap);
-        })
-        .catch(err => {
-          console.error("map.jsonの読み込み失敗:", err);
-        });
-    }
-
-    function displayMapJson(data) {
-      const pre = document.getElementById("mapJsonDisplay");
-      pre.textContent = JSON.stringify(data, null, 2);
-    }
-
-    function loadTileImages(mapping, callback) {
-      const keys = Object.keys(mapping);
-      let loadedCount = 0;
-      const total = keys.length;
-      keys.forEach(key => {
-        const img = new Image();
-        img.src = mapping[key];
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === total) {
-            callback();
-          }
-        };
-        tileImages[key] = img;
-      });
-    }
-
-    function drawMap() {
-      if (!mapData || !ctx) return;
-      const tileSize = mapData.tileSize;
-      for (let y = 0; y < mapData.mapHeight; y++) {
-        for (let x = 0; x < mapData.mapWidth; x++) {
-          const tileId = mapData.tiles[y][x];
-          const img = tileImages[tileId];
-          if (img) {
-            ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
-          }
-        }
+    // ② 各 select 要素に場所リストをセット
+    function populateSelect(selectElement) {
+      for (const [name, address] of Object.entries(places)) {
+        const option = document.createElement("option");
+        option.value = address;
+        option.textContent = name;
+        selectElement.appendChild(option);
       }
     }
+    window.addEventListener("load", () => {
+      populateSelect(document.getElementById("originSelect"));
+      populateSelect(document.getElementById("destinationSelect"));
+      populateSelect(document.getElementById("waypointSelect"));
+    });
 
-    // -------------------------------
-    // ② Excel表の貼り付け＆解析処理
-    // -------------------------------
-    document.getElementById("parseButton").addEventListener("click", () => {
-      const pasteArea = document.getElementById("pasteArea");
-      const pastedHTML = pasteArea.innerHTML;
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(pastedHTML, "text/html");
-      const table = doc.querySelector("table");
-      if (!table) {
-        alert("テーブルが見つかりません。Excelからコピーされていない可能性があります。");
+    // ③ ルート検索と所要時間計算
+    document.getElementById("calcButton").addEventListener("click", () => {
+      const staffName = document.getElementById("staffName").value.trim();
+      const origin = document.getElementById("originSelect").value;
+      const destination = document.getElementById("destinationSelect").value;
+      const waypointAddress = document.getElementById("waypointSelect").value;
+      const departureTimeStr = document.getElementById("departureTime").value;
+
+      if (!staffName || !origin || !destination) {
+        alert("スタッフ名、出発地、到着地は必須です。");
         return;
       }
-      const rows = table.querySelectorAll("tr");
-      const data = [];
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td, th");
-        const rowData = [];
-        cells.forEach(cell => {
-          rowData.push(cell.innerText.trim());
-        });
-        data.push(rowData);
-      });
-      console.log("Excel表を配列として取得:", data);
-      alert("解析完了！コンソールを確認してください。");
 
-      // 解析結果をCanvasに重ね描きする例
-      drawMap(); // まず背景マップを再描画
-      ctx.fillStyle = "red";
-      ctx.font = "24px sans-serif";
-      if (data.length > 0) {
-        ctx.fillText("1行目: " + data[0].join(", "), 20, 40);
+      // 出発時刻を Date オブジェクトに変換 (本日の出発時刻として)
+      const now = new Date();
+      const [hours, minutes] = departureTimeStr.split(":").map(Number);
+      const departureTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+      // DirectionsService を利用
+      const directionsService = new google.maps.DirectionsService();
+      let request = {
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING
+      };
+      if (waypointAddress) {
+        request.waypoints = [{ location: waypointAddress }];
       }
+
+      directionsService.route(request, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          const legs = result.routes[0].legs;
+          let totalDurationSec = 0;
+          let outputHtml = `<h2>${staffName} さんのルート</h2>`;
+          outputHtml += `<p>出発時刻: ${departureTime.toLocaleTimeString()}</p>`;
+          legs.forEach((leg, index) => {
+            totalDurationSec += leg.duration.value; // 秒単位
+            const arrivalTime = new Date(departureTime.getTime() + totalDurationSec * 1000);
+            outputHtml += `<p>区間${index + 1}:<br> ${leg.start_address} → ${leg.end_address}<br>`;
+            outputHtml += `移動時間: ${leg.duration.text}、到着予定時刻: ${arrivalTime.toLocaleTimeString()}</p>`;
+          });
+          document.getElementById("output").innerHTML = outputHtml;
+        } else {
+          document.getElementById("output").innerHTML = `<p>ルート検索に失敗しました: ${status}</p>`;
+        }
+      });
     });
   </script>
 </body>
