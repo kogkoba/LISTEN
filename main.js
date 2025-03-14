@@ -1,181 +1,39 @@
-// Canvasとコンテキストの取得
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+<script>
+  document.getElementById("parseButton").addEventListener("click", () => {
+    // 貼り付け先のDIV
+    const pasteArea = document.getElementById("pasteArea");
+    // 中身を取得
+    const pastedHTML = pasteArea.innerHTML;
 
-// マップデータを格納する変数
-let mapData = null;
+    // 1) DOMParserでHTMLをパースして、テーブル要素を取得
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pastedHTML, "text/html");
+    const table = doc.querySelector("table");
 
-// タイル画像のキャッシュ
-const tileImages = {};
-
-// ゲーム開始時に実行
-window.addEventListener("load", initGame);
-
-function initGame() {
-  // JSONの読み込み
-  fetch("data/map.json")
-    .then((res) => res.json())
-    .then((data) => {
-      mapData = data;
-      // タイル画像をまとめて読み込む
-      loadTileImages(data.tileMapping, startGame);
-    })
-    .catch((err) => {
-      console.error("map.json の読み込み失敗:", err);
-    });
-}
-
-// タイル画像をすべて読み込んだらコールバックを呼ぶ
-function loadTileImages(mapping, callback) {
-  const keys = Object.keys(mapping);
-  let loadedCount = 0;
-
-  keys.forEach((key) => {
-    const img = new Image();
-    img.src = mapping[key];
-    img.onload = () => {
-      loadedCount++;
-      if (loadedCount === keys.length) {
-        // 全部読み込んだらコールバック
-        callback();
-      }
-    };
-    tileImages[key] = img;
-  });
-}
-
-function startGame() {
-  // 1フレームごとにアップデート&描画
-  requestAnimationFrame(gameLoop);
-}
-
-function gameLoop() {
-  update();
-  draw();
-  requestAnimationFrame(gameLoop);
-}
-
-// 更新処理（キャラクター移動など）
-function update() {
-  // 例: キーボード入力を受けてキャラクターを動かす、とか
-}
-
-// 描画処理
-function draw() {
-  if (!mapData) return;
-
-  // マップの描画
-  const tileSize = mapData.tileSize;
-  for (let y = 0; y < mapData.mapHeight; y++) {
-    for (let x = 0; x < mapData.mapWidth; x++) {
-      const tileId = mapData.tiles[y][x];
-      const img = tileImages[tileId];
-      if (img) {
-        ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
-      }
-    }
-  }
-
-const characterImages = {};
-
-function loadCharacterImages(mapping, callback) {
-  const keys = Object.keys(mapping);
-  let loadedCount = 0;
-
-  keys.forEach((key) => {
-    const img = new Image();
-    img.src = mapping[key];
-    img.onload = () => {
-      loadedCount++;
-      if (loadedCount === keys.length) {
-        callback();
-      }
-    };
-    characterImages[key] = img;
-  });
-}
-
-// map.json読み込み後にキャラクター画像を読み込む例
-fetch("data/map.json")
-  .then(res => res.json())
-  .then(data => {
-    // タイル画像読み込み後、キャラクター画像を読み込む
-    loadTileImages(data.tileMapping, () => {
-      loadCharacterImages(data.characters, startGame);
-    });
-  });
-
-
-
- // プレイヤーの座標
-let playerX = 2;
-let playerY = 2;
-
-// キー入力を監視
-window.addEventListener("keydown", (e) => {
-  let newX = playerX;
-  let newY = playerY;
-
-  switch (e.key) {
-    case "ArrowUp":
-      newY--;
-      break;
-    case "ArrowDown":
-      newY++;
-      break;
-    case "ArrowLeft":
-      newX--;
-      break;
-    case "ArrowRight":
-      newX++;
-      break;
-    default:
+    if (!table) {
+      alert("テーブルが見つかりません。Excelからコピーされていない可能性があります。");
       return;
-  }
-
-  // 移動先がマップ範囲内か確認
-  if (newX < 0 || newY < 0 || newX >= mapData.mapWidth || newY >= mapData.mapHeight) {
-    console.error("マップ外です");
-    return;
-  }
-
-  // タイルIDを取得
-  const tileId = mapData.tiles[newY][newX];
-  // そのタイルのwalkableをチェック
-  const canWalk = mapData.walkable[tileId];
-
-  if (!canWalk) {
-    // 塀(1) など、歩けない場合
-    console.error("そこは歩けません");
-  } else {
-    // 歩けるなら移動
-    playerX = newX;
-    playerY = newY;
-  }
-});
-
-// update関数の中でプレイヤー位置の更新が行われるなら、この処理をそちらに統合してもOK
-
-function draw() {
-  if (!mapData) return;
-
-  // 1. マップ描画
-  const tileSize = mapData.tileSize;
-  for (let y = 0; y < mapData.mapHeight; y++) {
-    for (let x = 0; x < mapData.mapWidth; x++) {
-      const tileId = mapData.tiles[y][x];
-      const img = tileImages[tileId];
-      if (img) {
-        ctx.drawImage(img, x * tileSize, y * tileSize, tileSize, tileSize);
-      }
     }
-  }
 
-  // 2. プレイヤーの描画
-  // ここでは簡易的に四角で表示
-  ctx.fillStyle = "red";
-  ctx.fillRect(playerX * tileSize, playerY * tileSize, tileSize, tileSize);
-}
+    // 2) テーブルの各行・セルを読み取る
+    const rows = table.querySelectorAll("tr");
+    const data = [];
+    rows.forEach((row) => {
+      const cells = row.querySelectorAll("td, th");
+      const rowData = [];
+      cells.forEach((cell) => {
+        rowData.push(cell.innerText.trim());
+      });
+      data.push(rowData);
+    });
 
-}
+    // 3) 取得したdataを、ゲームシミュレーション用に変換
+    //    ここは業務ロジックに合わせて自由に。
+    console.log("Excel表を配列として取得:", data);
 
+    // 例: 先頭行を見出しとして扱い、2行目以降をデータとする…など
+    // ここでCanvasに反映する処理を書く
+    // ...
+    alert("解析完了！コンソールを確認してください。");
+  });
+</script>
